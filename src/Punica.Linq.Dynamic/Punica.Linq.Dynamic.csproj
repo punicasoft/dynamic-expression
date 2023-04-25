@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+
+	  <Description>Punica</Description>
+	  <PackageId>$(AssemblyName)</PackageId>
+	  <RootNamespace>$(AssemblyName)</RootNamespace>
+	  <Product>Punica</Product>
+	  <Authors>Radnima</Authors>
+	  <Version>0.1.0</Version>
+
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/punicasoft/dynamic-expression</RepositoryUrl>
+
+	  
+  </PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>punica.png</PackageIcon>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<IsPackable>True</IsPackable>
+
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\punica.png" Pack="true" Visible="false" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Punica" Version="1.0.1-beta.1" />
+	</ItemGroup>
+
+	
+
+
+</Project>
