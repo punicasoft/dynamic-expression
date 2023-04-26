@@ -61,4 +61,9 @@ var result = func(data);
  - Doesn't works with negative numbers 
  - Lambada not supported
 
+|                         Method |      Mean |     Error |    StdDev |   Gen0 |   Gen1 | Allocated |
+|------------------------------- |----------:|----------:|----------:|-------:|-------:|----------:|
+| Two_Select_With_New_Expression | 13.469 us | 0.2661 us | 0.3065 us | 1.7395 | 0.0153 |  14.22 KB |
+|     Select_With_New_Expression |  6.309 us | 0.0895 us | 0.0794 us | 0.7553 |      - |    6.2 KB |
+|    Advanced_Boolean_Expression |  3.714 us | 0.0303 us | 0.0284 us | 0.6409 | 0.0038 |   5.26 KB |
 
