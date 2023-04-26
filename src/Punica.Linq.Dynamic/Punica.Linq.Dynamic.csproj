@@ -11,7 +11,7 @@
 	  <RootNamespace>$(AssemblyName)</RootNamespace>
 	  <Product>Punica</Product>
 	  <Authors>Radnima</Authors>
-	  <Version>0.1.0</Version>
+	  <Version>0.1.1</Version>
 
 	  <RepositoryType>git</RepositoryType>
 	  <RepositoryUrl>https://github.com/punicasoft/dynamic-expression</RepositoryUrl>
@@ -33,7 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Punica" Version="1.0.1-beta.1" />
+	  <PackageReference Include="Punica" Version="1.0.1" />
 	</ItemGroup>
 
 	

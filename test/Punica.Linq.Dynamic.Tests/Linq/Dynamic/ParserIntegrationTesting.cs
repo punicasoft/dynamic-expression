@@ -1,9 +1,7 @@
-﻿using System.Linq.Expressions;
-using System.Text.Json;
-using Punica.Linq.Dynamic;
-using Punica.Tests.Utils;
+﻿using System.Text.Json;
+using Punica.Linq.Dynamic.Tests.Utils;
 
-namespace Punica.Tests.Linq.Dynamic
+namespace Punica.Linq.Dynamic.Tests.Linq.Dynamic
 {
     public class ParserIntegrationTesting
     {
@@ -153,7 +151,8 @@ namespace Punica.Tests.Linq.Dynamic
             Evaluator evaluator = new Evaluator((Type)null, null);
             var expression1 = TextParser.Evaluate(stringExp, evaluator);
             var resultExpression = evaluator.GetFilterExpression<bool>(expression1[0]);
-            var actual = resultExpression.Compile()();
+            Func<bool> func = resultExpression.Compile();
+            var actual = func();
 
             Assert.Equal(x == y, actual);
         }

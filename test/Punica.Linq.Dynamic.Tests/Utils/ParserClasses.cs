@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Punica.Tests.Utils
+﻿namespace Punica.Linq.Dynamic.Tests.Utils
 {
     public static class Data
     {

@@ -1,8 +1,8 @@
 ﻿using Punica.Dynamic;
 using System.Linq.Expressions;
 using Punica.Extensions;
-using Punica.Reflection;
 using Punica.Linq.Dynamic.Expressions;
+using Punica.Linq.Dynamic.Reflection;
 
 namespace Punica.Linq.Dynamic
 {

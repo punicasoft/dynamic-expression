@@ -17,7 +17,7 @@ namespace Punica.Linq.Dynamic
         public static Expression[] Evaluate(string expression, IEvaluator evaluator)
         {
             // Convert the expression into a list of tokens
-            List<Token> tokens = Tokenize(expression);
+            List<Token> tokens = Tokenizer.Tokenize(expression);
 
             //If there is no tokens return empty array;
             if (tokens.Count == 0)
@@ -68,30 +68,6 @@ namespace Punica.Linq.Dynamic
                         // Pop the left parenthesis from the stack
                         operatorStack.Pop();
                         break;
-                    case TokenType.OpenCurlyParen:
-                        // Push left parentheses onto the stack
-                        operatorStack.Push(token);
-                        outputQueue.Push(token);
-                        break;
-
-                    case TokenType.CloseCurlyParen:
-                        // Pop operators from the stack and add them to the output queue until a left parenthesis is found
-                        while (operatorStack.Count > 0 && operatorStack.Peek().Value != "{")
-                        {
-                            outputQueue.Push(operatorStack.Pop());
-                        }
-
-                        // If a left parenthesis was not found, the expression is invalid
-                        if (operatorStack.Count == 0)
-                        {
-                            throw new ArgumentException("Mismatched curly brackets");
-                        }
-
-                        // Pop the left parenthesis from the stack
-                        operatorStack.Pop();
-                        outputQueue.Push(token);
-                        break;
-
                     case TokenType.Unknown:
                         // Do nothing 
                         break;
@@ -251,11 +227,6 @@ namespace Punica.Linq.Dynamic
                         var leftOperand16 = evaluationStack.Pop();
                         evaluationStack.Push(evaluator.Contains(leftOperand16, rightOperand16));
                         break;
-                    //case Operator.Method:
-                    //    var rightOperand17 = evaluationStack.Pop();
-                    //    var leftOperand17 = evaluationStack.Pop();
-                    //    evaluationStack.Push(evaluator.Any(leftOperand17, rightOperand17));
-                    //    break;
                     case Operator.New:
                         var rightOperand18 = evaluationStack.Pop();
                         evaluationStack.Push(evaluator.New(rightOperand18));
@@ -288,22 +259,13 @@ namespace Punica.Linq.Dynamic
                         break;
                 }
             }
-
-            //// The final value on the stack is the result of the expression
-
-            //List<Expression> result = new List<Expression>();
-
-            //while (evaluationStack.Count > 0)
-            //{
-            //    result.Add((Expression)evaluationStack.Pop());
-            //}
-            //return result.ToArray();
+            
             outputQueue.Clear();
 
             return (Expression)evaluationStack.Pop();
         }
 
-        static List<Token> Tokenize(string expression)
+        static List<Token> Tokenize2(string expression)
         {
             List<Token> tokens = new List<Token>();
 
@@ -316,7 +278,6 @@ namespace Punica.Linq.Dynamic
                 {
                     continue;
                 }
-
 
                 // Handle operators
                 if (c == ',')
@@ -374,24 +335,6 @@ namespace Punica.Linq.Dynamic
                     tokens.Add(new Token("=", TokenType.Operator, Operator.Assignment));
                     i++;
                 }
-                //else if (c == '(')
-                //{
-                //    tokens.Add(new Token("(", TokenType.OpenParen, Operator.OpenParen));
-                //}
-                //else if (c == ')')
-                //{
-                //    tokens.Add(new Token(")", TokenType.CloseParen, Operator.CloseParen));
-                //}
-                //else if (c == '{')
-                //{
-                //    tokens.Add(new Token("{", TokenType.OpenCurlyParen, Operator.OpenCurlyParen));
-                //}
-                //else if (c == '}')
-                //{
-                //    tokens.Add(new Token("}", TokenType.CloseCurlyParen, Operator.CloseCurlyParen));
-                //}
-
-
                 else if (c == '+')
                 {
                     tokens.Add(new Token("+", TokenType.Operator, Operator.Plus));
@@ -584,59 +527,322 @@ namespace Punica.Linq.Dynamic
                                 real = true;
                             }
                         }
-                        //else
-                        //{
-                        //    //Childrens.any('Male' in Gender && 5 > (1+2) ).any()
-                        //    if (expression[j] == '.')
-                        //    {
-                        //        dotIndex = j;
-                        //    }
-                        //    else if (expression[j] == '(')
-                        //    {
-                        //        if (dotIndex < 0 || dotIndex + 1 == j)
-                        //        {
-                        //            throw new ArgumentException($"Invalid method syntax detected {expression.Substring(i, j)}");
-                        //        }
+                        j++;
+                    }
 
-                        //        methodIndex = j;
+                    if (i >= expression.Length || i == j)
+                    {
+                        continue;
+                    }
 
-                        //        int k = j + 1;
-                        //        int depth = 1;
+                    var stringVal = expression.Substring(i, j - i);
+                    var type = TokenType.Unknown;
+                    var op = Operator.Unknown;
 
-                        //        while (k < expression.Length && depth > 0)
-                        //        {
-                        //            switch (expression[k])
-                        //            {
-                        //                case '(':
-                        //                    depth++;
-                        //                    break;
-                        //                case ')':
-                        //                    depth--;
-                        //                    break;
-                        //                default:
-                        //                    break;
-                        //            }
+                    if (number)
+                    {
+                        type = real ? TokenType.RealNumber : TokenType.Number;
+                    }
+                    else if (stringVal.StartsWith('\'') && stringVal.EndsWith('\''))
+                    {
+                        type = TokenType.String;
+                    }
+                    else if (stringVal.Equals("true", StringComparison.Ordinal) || stringVal.Equals("false", StringComparison.Ordinal))
+                    {
+                        type = TokenType.Boolean;
+                    }
+                    else if (stringVal.Equals("any", StringComparison.Ordinal))
+                    {
+                        type = TokenType.Operator; // remove this may be??
+                        op = Operator.Method;
+                    }
+                    else if (stringVal.Equals("new", StringComparison.Ordinal))
+                    {
+                        type = TokenType.Operator; // remove this may be??
+                        op = Operator.New;
+                    }
+                    else if (stringVal.StartsWith('@'))
+                    {
+                        type = TokenType.Parameter;
+                    }
+                    else
+                    {
+                        type = TokenType.Member;
+                    }
 
-                        //            k++;
-                        //        }
 
-                        //        if (depth != 0)
-                        //        {
-                        //            throw new ArgumentException("Input contains mismatched parentheses.");
-                        //        }
+                    tokens.Add(new Token(stringVal.Trim('\'').TrimStart('@'), type, op));
+                    i = j - 1;
+                }
+            }
 
-                        //        var member = expression.Substring(i, dotIndex - i);
-                        //        var method = expression.Substring(dotIndex + 1, methodIndex - dotIndex - 1);
-                        //        var innerExp = expression.Substring(methodIndex + 1, k - methodIndex - 2);
+            return tokens;
+        }
 
-                        //        tokens.Add(new Token(member, TokenType.Member, Operator.Unknown));
-                        //        tokens.Add(new Token(method, TokenType.Operator, Operator.Method));
-                        //        tokens.Add(new Token(innerExp, TokenType.String, Operator.Unknown));
-                        //        i = k;
-                        //        j = i - 1; //j++ will make j = i since we want to start where we left off instead original like j= i+1;
-                        //    }
 
-                        //}
+        public static List<Token> Tokenize(string expression)
+        {
+            List<Token> tokens = new List<Token>();
+
+            for (int i = 0; i < expression.Length; i++)
+            {
+                char c = expression[i];
+
+                // Skip whitespace
+                if (char.IsWhiteSpace(c))
+                {
+                    continue;
+                }
+
+
+                // Handle operators
+                if (c == ',')
+                {
+                    tokens.Add(new Token(",", TokenType.Sequence, Operator.Unknown));
+                }
+                else if (c == '.')
+                {
+                    tokens.Add(new Token(".", TokenType.Operator, Operator.Dot));
+                }
+                else if (c == '&' && i + 1 < expression.Length && expression[i + 1] == '&')
+                {
+                    tokens.Add(new Token("&&", TokenType.Operator, Operator.And));
+                    i++;
+                }
+                else if (c == '|' && i + 1 < expression.Length && expression[i + 1] == '|')
+                {
+                    tokens.Add(new Token("||", TokenType.Operator, Operator.Or));
+                    i++;
+                }
+                else if (c == '!' && i + 1 < expression.Length && expression[i + 1] == '=')
+                {
+                    tokens.Add(new Token("!=", TokenType.Operator, Operator.NotEqual));
+                    i++;
+                }
+                else if (c == '!')
+                {
+                    tokens.Add(new Token("!", TokenType.Operator, Operator.Not));
+                }
+                else if (c == '<' && i + 1 < expression.Length && expression[i + 1] == '=')
+                {
+                    tokens.Add(new Token("<=", TokenType.Operator, Operator.LessThanEqual));
+                    i++;
+                }
+                else if (c == '>' && i + 1 < expression.Length && expression[i + 1] == '=')
+                {
+                    tokens.Add(new Token(">=", TokenType.Operator, Operator.GreaterThanEqual));
+                    i++;
+                }
+                else if (c == '<')
+                {
+                    tokens.Add(new Token("<", TokenType.Operator, Operator.LessThan));
+                }
+                else if (c == '>')
+                {
+                    tokens.Add(new Token(">", TokenType.Operator, Operator.GreaterThan));
+                }
+                else if (c == '=' && i + 1 < expression.Length && expression[i + 1] == '=')
+                {
+                    tokens.Add(new Token("==", TokenType.Operator, Operator.Equal));
+                    i++;
+                }
+                else if (c == '=')
+                {
+                    tokens.Add(new Token("=", TokenType.Operator, Operator.Assignment));
+                    i++;
+                }
+                else if (c == '+')
+                {
+                    tokens.Add(new Token("+", TokenType.Operator, Operator.Plus));
+                }
+                else if (c == '-')
+                {
+                    tokens.Add(new Token("-", TokenType.Operator, Operator.Minus));
+                }
+                else if (c == '/')
+                {
+                    tokens.Add(new Token("/", TokenType.Operator, Operator.Divide));
+                }
+                else if (c == '*')
+                {
+                    tokens.Add(new Token("*", TokenType.Operator, Operator.Multiply));
+                }
+                else if (c == '%')
+                {
+                    tokens.Add(new Token("%", TokenType.Operator, Operator.Modulo));
+                }
+                else if (c == '?' && i + 1 < expression.Length && expression[i + 1] == '?')
+                {
+                    tokens.Add(new Token("??", TokenType.Operator, Operator.NullCoalescing));
+                    i++;
+                }
+                else if (c == '?')
+                {
+                    tokens.Add(new Token("?", TokenType.Operator, Operator.Question));
+                }
+                else if (c == ':')
+                {
+                    tokens.Add(new Token(":", TokenType.Operator, Operator.Colon));
+                }
+                else if (c == 'i' && i + 1 < expression.Length && expression[i + 1] == 'n')
+                {
+                    tokens.Add(new Token("in", TokenType.Operator, Operator.In));
+                    i++;
+                }
+                else if (c == '\'' || c == '"')
+                {
+                    // Handle operands
+                    int j = i + 1;
+
+                    while (j < expression.Length && expression[j] != c)
+                    {
+                        j++;
+                    }
+
+                    if (expression[j] != c)
+                    {
+                        throw new ArgumentException("Input contains invalid string literal.");
+                    }
+
+                    var stringVal = expression.Substring(i + 1, j - i - 1);
+
+                    tokens.Add(new Token(stringVal, TokenType.String, Operator.Unknown));
+
+                    i = j; // last character since we starting with next
+                }
+                else if (c == '(')
+                {
+                    var count = tokens.Count;
+
+                    if (count > 0)
+                    {
+                        if (tokens[count - 1].Type == TokenType.Member)
+                        {
+                            int j = i + 1;
+
+                            int depth = 1;
+
+                            while (j < expression.Length && depth > 0)
+                            {
+                                switch (expression[j])
+                                {
+                                    case '(':
+                                        depth++;
+                                        break;
+                                    case ')':
+                                        depth--;
+                                        break;
+                                    default:
+                                        break;
+                                }
+
+                                j++;
+                            }
+
+                            if (depth != 0)
+                            {
+                                throw new ArgumentException("Input contains mismatched parentheses.");
+                            }
+
+                            var innerExp = expression.Substring(i + 1, j - i - 2);
+
+                            //tokens[count - 1] = new Token(tokens[count - 1].Value, TokenType.Operator, Operator.Method); //set previous token as a method
+                            tokens.Add(new Token(innerExp, TokenType.String, Operator.Unknown));
+
+                            i = j - 1;
+
+                        }
+                        else
+                        {
+                            tokens.Add(new Token("(", TokenType.OpenParen, Operator.OpenParen));
+                        }
+                    }
+                    else
+                    {
+                        tokens.Add(new Token("(", TokenType.OpenParen, Operator.OpenParen));
+                    }
+
+
+                }
+                else if (c == ')')
+                {
+                    tokens.Add(new Token(")", TokenType.CloseParen, Operator.CloseParen));
+                }
+                else if (c == '{')
+                {
+                    int j = i + 1;
+
+                    int depth = 1;
+
+                    while (j < expression.Length && depth > 0)
+                    {
+                        switch (expression[j])
+                        {
+                            case '{':
+                                depth++;
+                                break;
+                            case '}':
+                                depth--;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        j++;
+                    }
+
+                    if (depth != 0)
+                    {
+                        throw new ArgumentException("Input contains mismatched parentheses.");
+                    }
+
+                    var innerExp = expression.Substring(i + 1, j - i - 2);
+                    tokens.Add(new Token(innerExp, TokenType.String, Operator.Unknown));
+                    i = j - 1;
+                }
+                else if (Match(i, expression, out var index))
+                {
+                    var token = Keys[index];
+                    tokens.Add(token);
+                    i = i + token.Value.Length - 1;
+                }
+                else
+                {
+                    bool number = true;
+                    bool real = false;
+
+                    // Handle operands
+                    int j = i + 1;
+
+                    if (!char.IsDigit(c))
+                    {
+                        number = false;
+                    }
+
+                    int dotIndex = -1;
+                    int methodIndex = -1;
+
+                    // TODO : have custom punctuation
+                    while (j < expression.Length && !(char.IsWhiteSpace(expression[j]) || (char.IsPunctuation(expression[j]) && !number)))
+                    {
+                        if (number)
+                        {
+                            if (!char.IsDigit(expression[j]) && expression[j] != '.')
+                            {
+                                number = false;
+                            }
+
+                            if (expression[j] == '.')
+                            {
+                                if (real)
+                                {
+                                    throw new ArgumentException(
+                                        $"Invalid number detected {expression.Substring(i, j)}");
+                                }
+
+                                real = true;
+                            }
+                        }
 
                         j++;
                     }
@@ -676,11 +882,6 @@ namespace Punica.Linq.Dynamic
                     {
                         type = TokenType.Parameter;
                     }
-                    //else if (expression[j] == '(')
-                    //{
-                    //    type = TokenType.Operator;
-                    //    op = Operator.Method;
-                    //}
                     else
                     {
                         type = TokenType.Member;
