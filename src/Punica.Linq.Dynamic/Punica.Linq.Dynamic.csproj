@@ -10,7 +10,7 @@
 	  <PackageId>$(AssemblyName)</PackageId>
 	  <RootNamespace>$(AssemblyName)</RootNamespace>
 	  <Product>Punica</Product>
-	  <Authors>Radnima</Authors>
+	  <Authors>Randima</Authors>
 	  <Version>0.1.1</Version>
 
 	  <RepositoryType>git</RepositoryType>
