@@ -1,4 +1,5 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System.Linq.Expressions;
+using BenchmarkDotNet.Attributes;
 
 namespace Punica.Linq.Dynamic.Performance.Tests
 {
@@ -9,30 +10,26 @@ namespace Punica.Linq.Dynamic.Performance.Tests
         [Benchmark]
         public void Two_Select_With_New_Expression()
         {
-            string stringExp = "this.Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as Kids} )";
-            Evaluator evaluator = new Evaluator(typeof(IQueryable<Person>), null);
-            var expression1 = TextParser.Evaluate(stringExp, evaluator);
-            var resultExpression = evaluator.GetFilterExpression<IQueryable<Person>, object>(expression1[0]);
+            string stringExp = "Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as 'Kids'} )";
+            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp, new MethodContext(Expression.Parameter(typeof(IQueryable<Person>), "arg"))));
+            var resultExpression = rootToken.Evaluate(null);
         }
 
         [Benchmark]
         public void Select_With_New_Expression()
         {
-            string stringExp = "this.Select( new { FirstName , LastName as Kids} )";
-            Evaluator evaluator = new Evaluator(typeof(IQueryable<Person>), null);
-            var expression1 = TextParser.Evaluate(stringExp, evaluator);
-            var resultExpression = evaluator.GetFilterExpression<IQueryable<Person>, object>(expression1[0]);
+            string stringExp = "Select( new { FirstName , LastName as 'Kids'} )";
+            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp, new MethodContext(Expression.Parameter(typeof(IQueryable<Person>), "arg"))));
+            var resultExpression = rootToken.Evaluate(null);
         }
 
         [Benchmark]
         public void Advanced_Boolean_Expression()
         {
             string stringExp = $"(5 > 3 && 2 <= 4 || 1 != 1 ) && 2 + 4 > 3 && 's' in 'cro' + 's'";
-            Evaluator evaluator = new Evaluator((Type)null, null);
-            var expression1 = TextParser.Evaluate(stringExp, evaluator);
-            var resultExpression = evaluator.GetFilterExpression<bool>(expression1[0]);
+            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp));
+            var resultExpression = rootToken.Evaluate(null);
         }
-        
     }
 
     public class Person

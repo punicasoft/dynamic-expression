@@ -17,5 +17,7 @@
         Boolean,
         Parameter,
         Sequence,
+        Value,
+        List
     }
 }

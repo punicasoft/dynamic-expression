@@ -85,11 +85,6 @@ namespace Punica.Linq.Dynamic.Reflection
         public static MethodInfo Contains(Type type) => (_contains ??= new Func<IEnumerable<object>, object, bool>(Enumerable.Contains).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
-        private static MethodInfo? _contains_predicate;
-
-        public static MethodInfo Contains_Predicate(Type type) => (_contains_predicate ??= new Func<IEnumerable<object>, Func<object, bool>, bool>(Enumerable.Contains).GetMethodInfo().GetGenericMethodDefinition())
-            .MakeGenericMethod(type);
-
         private static MethodInfo? _count;
 
         public static MethodInfo Count(Type type) => (_count ??= new Func<IEnumerable<object>, int>(Enumerable.Count).GetMethodInfo().GetGenericMethodDefinition())
@@ -102,7 +97,7 @@ namespace Punica.Linq.Dynamic.Reflection
 
         private static MethodInfo? _defaultIfEmpty;
 
-        public static MethodInfo DefaultIfEmpty(Type type) => (_defaultIfEmpty ??= new Func<IEnumerable<object>, IEnumerable<object>>(Enumerable.DefaultIfEmpty).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo DefaultIfEmpty(Type type) => (_defaultIfEmpty ??= new Func<IEnumerable<object>, IEnumerable<object?>>(Enumerable.DefaultIfEmpty).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _defaultIfEmpty_defaultValue;
@@ -127,7 +122,7 @@ namespace Punica.Linq.Dynamic.Reflection
 
         private static MethodInfo? _elementAtOrDefault;
 
-        public static MethodInfo ElementAtOrDefault(Type type) => (_elementAtOrDefault ??= new Func<IEnumerable<object>, int, object>(Enumerable.ElementAtOrDefault).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo ElementAtOrDefault(Type type) => (_elementAtOrDefault ??= new Func<IEnumerable<object>, int, object?>(Enumerable.ElementAtOrDefault).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _except;
@@ -152,12 +147,12 @@ namespace Punica.Linq.Dynamic.Reflection
 
         private static MethodInfo? _firstOrDefault;
 
-        public static MethodInfo FirstOrDefault(Type type) => (_firstOrDefault ??= new Func<IEnumerable<object>, object>(Enumerable.FirstOrDefault).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo FirstOrDefault(Type type) => (_firstOrDefault ??= new Func<IEnumerable<object>, object?>(Enumerable.FirstOrDefault).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _firstOrDefault_predicate;
 
-        public static MethodInfo FirstOrDefault_Predicate(Type type) => (_firstOrDefault_predicate ??= new Func<IEnumerable<object>, Func<object, bool>, object>(Enumerable.FirstOrDefault).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo FirstOrDefault_Predicate(Type type) => (_firstOrDefault_predicate ??= new Func<IEnumerable<object>, Func<object, bool>, object?>(Enumerable.FirstOrDefault).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _groupBy_keySelector;
@@ -169,21 +164,6 @@ namespace Punica.Linq.Dynamic.Reflection
 
         public static MethodInfo GroupBy_ValueSelector(Type source, Type key, Type element) => (_groupBy_valueSelector ??= new Func<IEnumerable<object>, Func<object, object>, Func<object, object>, IEnumerable<IGrouping<object, object>>>(Enumerable.GroupBy).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(source, key, element);
-
-        //private static MethodInfo? _groupBy_keySelector_resultSelector;
-
-        //public static MethodInfo GroupBy_KeySelector_ResultSelector(Type type) => (_groupBy_keySelector_resultSelector ??= new Func<IEnumerable<object>, Func<object, object>, Func<object, IEnumerable<object>, object>, IEnumerable<object>>(Enumerable.GroupBy).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type, type, type);
-
-        //private static MethodInfo? _groupBy_keySelector_elementSelector_resultSelector;
-
-        //public static MethodInfo GroupBy_KeySelector_ElementSelector_ResultSelector(Type type) => (_groupBy_keySelector_elementSelector_resultSelector ??= new Func<IEnumerable<object>, Func<object, object>, Func<object, object>, Func<object, IEnumerable<object>, object>, IEnumerable<object>>(Enumerable.GroupBy).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type, type, type, type);
-
-        //private static MethodInfo? _groupBy_keySelector_comparer;
-
-        //public static MethodInfo GroupBy_KeySelector_Comparer(Type type) => (_groupBy_keySelector_comparer ??= new Func<IEnumerable<object>, Func<object, object>, IEqualityComparer<object>, IEnumerable<IGrouping<object, object>>>(Enumerable.GroupBy).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type, type);
 
         private static MethodInfo? _groupJoin;
 
@@ -219,12 +199,12 @@ namespace Punica.Linq.Dynamic.Reflection
 
         private static MethodInfo? _lastOrDefault;
 
-        public static MethodInfo LastOrDefault(Type type) => (_lastOrDefault ??= new Func<IEnumerable<object>, object>(Enumerable.LastOrDefault).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo LastOrDefault(Type type) => (_lastOrDefault ??= new Func<IEnumerable<object>, object?>(Enumerable.LastOrDefault).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _lastOrDefault_predicate;
 
-        public static MethodInfo LastOrDefault_Predicate(Type type) => (_lastOrDefault_predicate ??= new Func<IEnumerable<object>, Func<object, bool>, object>(Enumerable.LastOrDefault).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo LastOrDefault_Predicate(Type type) => (_lastOrDefault_predicate ??= new Func<IEnumerable<object>, Func<object, bool>, object?>(Enumerable.LastOrDefault).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(type);
 
         private static MethodInfo? _longCount;
@@ -244,7 +224,7 @@ namespace Punica.Linq.Dynamic.Reflection
 
         private static MethodInfo? _max_selector;
 
-        public static MethodInfo Max_Selector(Type source, Type result) => (_max_selector ??= new Func<IEnumerable<object>, Func<object, object>, object>(Enumerable.Max).GetMethodInfo().GetGenericMethodDefinition())
+        public static MethodInfo Max_Selector(Type source, Type result) => (_max_selector ??= new Func<IEnumerable<object>, Func<object, object>, object?>(Enumerable.Max).GetMethodInfo().GetGenericMethodDefinition())
             .MakeGenericMethod(source, result);
 
         private static MethodInfo? _min;
@@ -331,26 +311,6 @@ namespace Punica.Linq.Dynamic.Reflection
             .MakeGenericMethod(type);
         
         public static MethodInfo Sum(Type type) => typeof(Enumerable).GetMethod(nameof(Enumerable.Sum), new []{type})!;
-
-        //private static MethodInfo? _sum_long;
-
-        //public static MethodInfo Sum_Long(Type type) => (_sum_long ??= new Func<IEnumerable<long>, long>(Enumerable.Sum).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type);
-
-        //private static MethodInfo? _sum_float;
-
-        //public static MethodInfo Sum_Float(Type type) => (_sum_float ??= new Func<IEnumerable<float>, float>(Enumerable.Sum).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type);
-
-        //private static MethodInfo? _sum_double;
-
-        //public static MethodInfo Sum_Double(Type type) => (_sum_double ??= new Func<IEnumerable<double>, double>(Enumerable.Sum).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type);
-
-        //private static MethodInfo? _sum_decimal;
-
-        //public static MethodInfo Sum_Decimal(Type type) => (_sum_decimal ??= new Func<IEnumerable<decimal>, decimal>(Enumerable.Sum).GetMethodInfo().GetGenericMethodDefinition())
-        //    .MakeGenericMethod(type);
 
         private static MethodInfo? _sum_selector_int;
 

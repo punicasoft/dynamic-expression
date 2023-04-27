@@ -1,3 +1,4 @@
+
 # Dynamic Expression
 A Simple text parse which convert expression from a string to Lambda Expression. Features and tolerance for expression are limited since this an early stage of work.
 
@@ -6,21 +7,23 @@ A Simple text parse which convert expression from a string to Lambda Expression.
 Addition
 ```csharp
 string stringExp = "5 + 7";
-Evaluator evaluator = new Evaluator((Type)null, null);
-var expression1 = TextParser.Evaluate(stringExp, evaluator);
-var resultExpression = evaluator.GetFilterExpression<int>(expression1[0]);
-Func<bool> func = resultExpression.Compile();
+var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp ));
+var resultExpression = rootToken.Evaluate(null);
+var exp = (Expression<Func<int>>)resultExpression;
+Func<bool> func = exp.Compile();
 var result = func(); // 12
+
 ```
 Contains
 
 ```csharp     
 string stringExp = $"'rl' in 'hello world'";
-Evaluator evaluator = new Evaluator((Type)null, null);
-var expression1 = TextParser.Evaluate(stringExp, evaluator);
-var resultExpression = evaluator.GetFilterExpression<bool>(expression1[0]);
-Func<bool> func = resultExpression.Compile();
+var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp ));
+var resultExpression = rootToken.Evaluate(null);
+var exp = (Expression<Func<bool>>)resultExpression;
+Func<bool> func = exp.Compile();
 var result = func(); // true
+
 ```
 
 ```csharp    
@@ -37,11 +40,11 @@ var data= new MyList(){
 }  
 
 string stringExp = $"'Status.Active' in Statuses";
-Evaluator evaluator = new Evaluator(typeof(MyList), null);
-var expression1 = TextParser.Evaluate(stringExp, evaluator);
-var resultExpression = evaluator.GetFilterExpression<MyList, bool>(expression1[0]);
-var actual = resultExpression.Compile()(Data.Collection);
-Func<bool> func = resultExpression.Compile();
+var methodContext = new MethodContext(Expression.Parameter(typeof(MyList), "arg"));
+var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp, methodContext));
+var resultExpression = rootToken.Evaluate(null);
+var exp = (Expression<Func<MyList, bool>>)resultExpression;
+Func<bool> func = exp.Compile();
 var result = func(data);
 ```
 
@@ -51,19 +54,31 @@ var result = func(data);
  - Support relational operators: **>,>=,<=, <**
  - Arithmetic Operators: **+, - , / ,*, %** (Does not support negative numbers)
  - New expressions **new**
- - Linq Methods **Any, Contain, Select**
+ - String Contains and Concatenation (Previously supported as well) 
+ - Linq Methods **Most common Linq methods. Exclusion are linq methods with multi lambda such as GroupJoin,   	SelectMany and certain overloads**
  - Precedence using **(,)**
 
 ## Limitation
 
- - Need spaces between tokens
- - Not every Linq method supported. Only what mentioned above
- - Doesn't works with negative numbers 
+ - Some tokens has better detections compared to before but some may still need spaces between tokens
+ - Some Linq method aren't supported.
+ - Not all string operation supported
+ - Dates and GUID operation has very little support
+ - Doesn't works with negative numbers very well
  - Lambada not supported
+ 
+ ## Improvements
 
-|                         Method |      Mean |     Error |    StdDev |   Gen0 |   Gen1 | Allocated |
-|------------------------------- |----------:|----------:|----------:|-------:|-------:|----------:|
-| Two_Select_With_New_Expression | 13.469 us | 0.2661 us | 0.3065 us | 1.7395 | 0.0153 |  14.22 KB |
-|     Select_With_New_Expression |  6.309 us | 0.0895 us | 0.0794 us | 0.7553 |      - |    6.2 KB |
-|    Advanced_Boolean_Expression |  3.714 us | 0.0303 us | 0.0284 us | 0.6409 | 0.0038 |   5.26 KB |
+ - Some tokens has better detections compared to before but some may still need spaces between tokens
+ - Much More Linq method support
+ - Method chaining support but not perfect
+ - Internal algorithm change support future changes
+ 
+ 
+
+|                         Method |      Mean |     Error |    StdDev |   Gen0 | Allocated |
+|------------------------------- |----------:|----------:|----------:|-------:|----------:|
+| Two_Select_With_New_Expression | 19.018 us | 0.3765 us | 0.4482 us | 2.1057 |  17.24 KB |
+|     Select_With_New_Expression |  7.272 us | 0.0857 us | 0.0802 us | 0.8087 |   6.63 KB |
+|    Advanced_Boolean_Expression |  3.970 us | 0.0739 us | 0.0655 us | 0.4883 |   4.01 KB |
 
