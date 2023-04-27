@@ -471,5 +471,14 @@ namespace Punica.Linq.Dynamic.Tests.Linq.Dynamic
             Assert.Equal(expected, actualJson);
         }
 
+        [Fact]
+        public void SelectInsideSelect_Evaluator()
+        {
+            string stringExp = "this.Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as Kids} )";
+            Evaluator evaluator = new Evaluator(typeof(IQueryable<Person>), null);
+            var expression1 = TextParser.Evaluate(stringExp, evaluator);
+            var resultExpression = evaluator.GetFilterExpression<IQueryable<Person>, object>(expression1[0]);
+        }
+
     }
 }
