@@ -2,7 +2,7 @@
 using System.Text.Json;
 using Punica.Linq.Dynamic.Tests.Utils;
 
-namespace Punica.Linq.Dynamic.Tests.Linq.Dynamic
+namespace Punica.Linq.Dynamic.Tests
 {
     public class ParserIntegrationTesting
     {
@@ -362,7 +362,7 @@ namespace Punica.Linq.Dynamic.Tests.Linq.Dynamic
             string stringExp = "new { Account.Name as 'Name' , Account.Balance as 'Balance' }";
             var resultExpression = GetGeneralExpression<Person, object>(stringExp);
             var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
-            var a = new { Name = Data.Persons[0].Account.Name, Balance = Data.Persons[0].Account.Balance }.ToString();
+            var a = new { Data.Persons[0].Account.Name, Data.Persons[0].Account.Balance }.ToString();
             Assert.Equal(a, actual.ToString());
         }
 
@@ -372,7 +372,7 @@ namespace Punica.Linq.Dynamic.Tests.Linq.Dynamic
             string stringExp = "new { Name = Account.Name , Bala = Account.Balance  }";
             var resultExpression = GetGeneralExpression<Person, object>(stringExp);
             var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
-            var a = new { Name = Data.Persons[0].Account.Name, Bala = Data.Persons[0].Account.Balance }.ToString();
+            var a = new { Data.Persons[0].Account.Name, Bala = Data.Persons[0].Account.Balance }.ToString();
             Assert.Equal(a, actual.ToString());
         }
 
