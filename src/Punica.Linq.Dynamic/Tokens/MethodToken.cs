@@ -1,77 +1,84 @@
 ﻿using System.Linq.Expressions;
-using Punica.Extensions;
-using Punica.Linq.Dynamic.Reflection;
 using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    /// <summary>
-    /// So method token you might need lambada expressions for each parameter if the parameter is function
-    /// </summary>
-    public class MethodToken : Operation, ITokenList, IExpression
+    public class MethodToken : IExpressionToken
     {
+        //private readonly int _depth;
         public string MethodName { get; }
-        public IExpression MemberExpression { get; } // TODO support chaining of methods
+        public IExpression MemberExpression { get; }
         private IExpression? Parameter { get; }
-        public List<IToken> Tokens { get; }
-        public override bool IsLeftAssociative => false;
-        public override short Precedence => 14;
-        public override ExpressionType ExpressionType => ExpressionType.Call;
-        
+        public List<Argument> Arguments { get; }
+        public bool IsLeftAssociative => false;
+        public short Precedence => 14;
+        public TokenType TokenType => TokenType.Operator;
+        public ExpressionType ExpressionType => ExpressionType.Call;
 
-        public MethodToken(string methodName, IExpression memberExpression, IExpression parameter)
+
+        public MethodToken(string methodName, IExpression memberExpression)
         {
+            // _depth = depth;
             MethodName = methodName;
             MemberExpression = memberExpression;
-            Tokens = new List<IToken>();
-            Parameter = parameter;
+            Arguments = new List<Argument>();
+            //Parameter = parameter;
+            // Parameter = new ParameterToken(memberExpression, "arg" + _depth);
         }
 
-
-        public void AddToken(IToken token)
+        public void AddToken(Argument token)
         {
-            Tokens.Add(token);
+            Arguments.Add(token);
         }
 
-        public override Expression Evaluate(Stack<Expression> stack)
-        {
-            return Evaluate();
-        }
-
+        //IEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+        //                     SelectMany<TSource, TCollection, TResult>(MemberExpression                , Tokens[0]                                                 , Tokens[1])
         public Expression Evaluate()
         {
             var memberExpression = MemberExpression.Evaluate();
-            var parameter = (ParameterExpression)Parameter.Evaluate();
+            var expressions = new Expression[Arguments.Count + 1];
+            var finalExpressions = new Expression[Arguments.Count + 1];
+            expressions[0] = memberExpression;
+            finalExpressions[0] = memberExpression;
 
-            if (memberExpression.Type.IsCollection())
+            //var argData = new ArgumentData[Arguments.Count];
+
+
+            //for (var i = 0; i < Arguments.Count; i++)
+            //{
+            //    var argument = Arguments[i];
+            //    argData[i] = argument.GetArgumentData();
+            //}
+
+
+            var methodInfo = MethodFinder.Instance.GetMethod(memberExpression.Type, MethodName, Arguments);
+            var resolver = MethodFinder.Instance.GetArgData(methodInfo);
+
+
+            //TODO handle for non extension types
+            //TODO handle for indexing in resolver since .IsFunc(i) and resolver.LambdasTypes(expressions, index) different
+            for (var i = 1; i < Arguments.Count + 1; i++)
             {
+                var index = i - 1;
+                var token = Arguments[index];
+                var paras = Array.Empty<ParameterExpression>();
 
-
-                List<Expression> expressions = new List<Expression>();
-                foreach (var token in Tokens)
+                if (resolver.IsFunc(i))
                 {
-                    var list = token as ITokenList;
+                    var types = resolver.LambdasTypes(expressions, index); //Might be incorrect, might need function position instead of parameter position
+                    paras = new ParameterExpression[types.Length];
 
-                    var expression = Process(list.Tokens);
-
-                    expressions.Add(expression);
+                    for (int j = 0; j < types.Length; j++)
+                    {
+                        var type = types[j];
+                        paras[j] = token.SetParameterExpressionBody(type, j);
+                    }
                 }
-
-                var methodHandler = MethodHandler.Instance.GetHandler(memberExpression.Type);
-
-                return methodHandler.CallMethod(MethodName, memberExpression, parameter, expressions.ToArray());
-
+                expressions[i] = token.Evaluate();
+                finalExpressions[i] = resolver.GetArguments(expressions, paras, i);
             }
-            else
-            {
-                switch (MethodName)
-                {
-                    default:
-                        throw new ArgumentException($"Invalid method {MethodName}");
-                }
-            }
+
+            return resolver.Resolve(expressions, finalExpressions);
         }
     }
-
-
 }

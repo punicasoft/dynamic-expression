@@ -76,9 +76,10 @@ var result = func(data);
  
  
 
-|                         Method |      Mean |     Error |    StdDev |   Gen0 | Allocated |
-|------------------------------- |----------:|----------:|----------:|-------:|----------:|
-| Two_Select_With_New_Expression | 19.018 us | 0.3765 us | 0.4482 us | 2.1057 |  17.24 KB |
-|     Select_With_New_Expression |  7.272 us | 0.0857 us | 0.0802 us | 0.8087 |   6.63 KB |
-|    Advanced_Boolean_Expression |  3.970 us | 0.0739 us | 0.0655 us | 0.4883 |   4.01 KB |
+|                         Method |      Mean |     Error |    StdDev |   Gen0 |   Gen1 | Allocated |
+|------------------------------- |----------:|----------:|----------:|-------:|-------:|----------:|
+| Two_Select_With_New_Expression | 32.223 us | 0.4045 us | 0.3378 us | 4.0283 | 0.0610 |  33.03 KB |
+|     Select_With_New_Expression | 15.513 us | 0.2949 us | 0.2897 us | 1.8616 |      - |  15.42 KB |
+|    Advanced_Boolean_Expression |  4.677 us | 0.0913 us | 0.1280 us | 0.5035 |      - |   4.14 KB |
+|     Average_Int_With_Predicate | 29.340 us | 0.2213 us | 0.2070 us | 3.8757 | 0.0305 |   31.7 KB |
 

@@ -3,13 +3,16 @@ using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class RootToken : Operation, ITokenList
+    public class RootToken : IExpression
     {
+        //public IExpression? Parameter { get; set; }
         private readonly ParameterToken[] _parameters;
         public List<IToken> Tokens { get; }
 
-        public override short Precedence => 0;
-        public override ExpressionType ExpressionType => ExpressionType.Lambda;
+        public bool IsLeftAssociative => true;
+        public short Precedence => 0;
+        public TokenType TokenType => TokenType.Operator;
+        public ExpressionType ExpressionType => ExpressionType.Lambda;
 
 
         public RootToken(List<ParameterToken> argExpression, List<IToken> tokens)
@@ -18,9 +21,9 @@ namespace Punica.Linq.Dynamic.Tokens
             Tokens = tokens;
         }
 
-        public override Expression Evaluate(Stack<Expression> stack)
+        public Expression Evaluate()
         {
-            var body = Process(Tokens);
+            var body = ExpressionEvaluator.Evaluate(Tokens);
 
             if (_parameters.Length == 0)
             {
