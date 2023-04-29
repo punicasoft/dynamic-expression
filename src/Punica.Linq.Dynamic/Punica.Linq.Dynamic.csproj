@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -11,7 +11,7 @@
 	  <RootNamespace>$(AssemblyName)</RootNamespace>
 	  <Product>Punica</Product>
 	  <Authors>Randima</Authors>
-	  <Version>0.2.0</Version>
+	  <Version>0.3.0</Version>
 
 	  <RepositoryType>git</RepositoryType>
 	  <RepositoryUrl>https://github.com/punicasoft/dynamic-expression</RepositoryUrl>
