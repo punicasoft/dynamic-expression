@@ -50,7 +50,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(5, 7)]
         [InlineData(7, 5)]
         [InlineData(-5, 7)]
-        [InlineData(-7, 5)]
+        [InlineData(7, -5)]
         public void Evaluate_WhenExpressionIsIntegerMinus_ShouldWork(int x, int y)
         {
 
@@ -66,7 +66,7 @@ namespace Punica.Linq.Dynamic.Tests
         [Theory]
         [InlineData(5.3, 7.1)]
         [InlineData(-5.3, 7.1)]
-        [InlineData(7.1, -5.3, Skip = "Not supported yet")]
+        [InlineData(7.1, -5.3)]
         public void Evaluate_WhenExpressionIsRealAdd_ShouldWork(double x, double y)
         {
 
@@ -81,7 +81,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(5.3, 7.1)]
         [InlineData(7.1, 5.3)]
         [InlineData(-5.3, 7.1)]
-        [InlineData(-7.1, 5.3)]
+        [InlineData(7.1, -8.3)]
         public void Evaluate_WhenExpressionIsRealMinus_ShouldWork(double x, double y)
         {
 
@@ -97,7 +97,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(5, 7)]
         [InlineData(5, 0)]
         [InlineData(-5, 7)]
-        [InlineData(-7, 5)]
+        [InlineData(7, -3)]
         public void Evaluate_WhenExpressionIsMultiply_ShouldWork(int x, int y)
         {
 
@@ -113,7 +113,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(5.2, 7)]
         [InlineData(5.7, 0)]
         [InlineData(-5.2, 7)]
-        [InlineData(-7.3, 5)]
+        [InlineData(7.3, -5)]
         public void Evaluate_WhenExpressionIsMultiplyReal_ShouldWork(double x, double y)
         {
 
@@ -128,7 +128,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(11, 5)]
         [InlineData(5, 7)]
         [InlineData(-5, 7)]
-        [InlineData(-7, 5)]
+        [InlineData(7, -11)]
         public void Evaluate_WhenExpressionIsDivide_ShouldWork(int x, int y)
         {
 
@@ -144,7 +144,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(5.4, 7.8)]
         [InlineData(5.4, 3)]
         [InlineData(-5.6, 7.9)]
-        [InlineData(-7.8, 3.2)]
+        [InlineData(7.8, -3.2)]
         public void Evaluate_WhenExpressionIsDivideReal_ShouldWork(double x, double y)
         {
             string stringExp = $"{x} / {y}";
@@ -159,6 +159,9 @@ namespace Punica.Linq.Dynamic.Tests
         [Theory]
         [InlineData(7, 8)]
         [InlineData(5, 5)]
+        [InlineData(-3, -3)]
+        [InlineData(-6, 6)]
+        [InlineData(2, -2)]
         public void Evaluate_WhenExpressionIsEqual_ShouldWork(int x, int y)
         {
 
@@ -172,6 +175,9 @@ namespace Punica.Linq.Dynamic.Tests
         [Theory]
         [InlineData(7, 8)]
         [InlineData(5, 5)]
+        [InlineData(-6, 6)]
+        [InlineData(2, -2)]
+        [InlineData(-4, -4)]
         public void Evaluate_WhenExpressionIsNotEqual_ShouldWork(int x, int y)
         {
 
@@ -187,6 +193,9 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(7, 7)]
         [InlineData(3, 5)]
         [InlineData(8, 2)]
+        [InlineData(-5, -7)]
+        [InlineData(-5, 2)]
+        [InlineData(5, -7)]
         public void Evaluate_WhenExpressionIsGreaterThan_ShouldWork(int x, int y)
         {
             string stringExp = $"{x} > {y}";
@@ -201,6 +210,9 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(7, 7)]
         [InlineData(3, 5)]
         [InlineData(8, 2)]
+        [InlineData(-5, -3)]
+        [InlineData(-5, 2)]
+        [InlineData(5, -7)]
         public void Evaluate_WhenExpressionIsLessThan_ShouldWork(int x, int y)
         {
             string stringExp = $"{x} < {y}";
@@ -214,6 +226,10 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(7, 7)]
         [InlineData(3, 5)]
         [InlineData(8, 2)]
+        [InlineData(-5, -7)]
+        [InlineData(-5, 2)]
+        [InlineData(5, -7)]
+        [InlineData(-3, -3)]
         public void Evaluate_WhenExpressionIsGreaterThanEqual_ShouldWork(int x, int y)
         {
             string stringExp = $"{x} >= {y}";
@@ -228,6 +244,10 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData(7, 7)]
         [InlineData(3, 5)]
         [InlineData(8, 2)]
+        [InlineData(-5, -3)]
+        [InlineData(-5, 2)]
+        [InlineData(5, -7)]
+        [InlineData(-3, -3)]
         public void Evaluate_WhenExpressionIsLessThanEqual_ShouldWork(int x, int y)
         {
             string stringExp = $"{x} <= {y}";

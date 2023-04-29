@@ -7,14 +7,15 @@ namespace Punica.Linq.Dynamic.Tokens
     {
         public override short Precedence => 11;
         public override ExpressionType ExpressionType => ExpressionType.Subtract;
+
         public override Expression Evaluate(Stack<Expression> stack)
         {
             var right = stack.Pop();
 
-            if (stack.Count == 0)
-            {
-                return Expression.Negate(right);
-            }
+            //if (stack.Count == 0)
+            //{
+            //    return Expression.Negate(right);
+            //}
 
             var left = stack.Pop();
 

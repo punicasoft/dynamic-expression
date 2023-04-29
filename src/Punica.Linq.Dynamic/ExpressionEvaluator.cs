@@ -23,15 +23,25 @@ namespace Punica.Linq.Dynamic
             Stack<IToken> outputQueue = new Stack<IToken>();
             Stack<IToken> operatorStack = new Stack<IToken>();
 
-            foreach (var token in tokens)
+            for (var i = 0; i < tokens.Count; i++)
             {
+                var token = tokens[i];
+
                 switch (token.TokenType)
                 {
                     case TokenType.Operator:
+
+                        // Check if the '-' operator is a unary minus
+                        if (token.ExpressionType == ExpressionType.Subtract && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
+                        {
+                            token = TokenCache.NegateToken;
+                            tokens[i] = token;
+                        }
+
                         // Pop operators from the stack until a lower-precedence or left-associative operator is found
                         while (operatorStack.Count > 0 &&
                                (token.Precedence < operatorStack.Peek().Precedence ||
-                               token.Precedence == operatorStack.Peek().Precedence && token.IsLeftAssociative))
+                                token.Precedence == operatorStack.Peek().Precedence && token.IsLeftAssociative))
                         {
                             outputQueue.Push(operatorStack.Pop());
                         }

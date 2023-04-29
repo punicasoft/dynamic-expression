@@ -9,6 +9,7 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken Multiply = new MultiplyToken();
         public static readonly IToken Divide = new DivideToken();
         public static readonly IToken Modulo = new ModuloToken();
+        public static readonly IToken NegateToken = new NegateToken();
         public static readonly IToken Equal = new EqualToken();
         public static readonly IToken NotEqual = new NotEqualToken();
         public static readonly IToken GreaterThan = new GreaterThanToken();
