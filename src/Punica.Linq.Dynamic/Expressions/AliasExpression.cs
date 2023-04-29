@@ -25,6 +25,18 @@ namespace Punica.Linq.Dynamic.Expressions
             Alias = alias;
         }
 
+        internal AliasExpression(Expression expression, ConstantExpression alias)
+        {
+            if (alias == null)
+                throw new ArgumentNullException(nameof(alias));
+
+            if (alias.Type != typeof(string))
+                throw new ArgumentException("Alias must be a string", nameof(alias));
+
+            Expression = expression;
+            Alias = (string)alias.Value!;
+        }
+
         public override bool CanReduce => true;
 
         public override Expression Reduce()
