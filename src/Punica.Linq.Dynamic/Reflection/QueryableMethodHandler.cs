@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using Punica.Extensions;
+using System.Linq.Expressions;
 
 namespace Punica.Linq.Dynamic.Reflection
 {
@@ -674,7 +675,8 @@ namespace Punica.Linq.Dynamic.Reflection
                 throw new ArgumentException("Invalid number of parameters");
             }
 
-            return Expression.Call(QueryableCachedMethodInfo.ToList(parameter.Type), member);
+            var type = member.Type.GetElementOrGenericArgType();
+            return Expression.Call(EnumerableCachedMethodInfo.ToList(type), member);
         }
 
         public MethodCallExpression Union(Expression member, ParameterExpression parameter, Expression[] expressions)

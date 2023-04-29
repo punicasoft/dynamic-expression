@@ -1,19 +1,11 @@
-﻿using System.Linq.Expressions;
+﻿using System.Runtime.CompilerServices;
 using Punica.Linq.Dynamic.Tokens;
 using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
-    public static class Tokenizer
+    public class Tokenizer
     {
-        private static readonly Dictionary<string, IToken> Tokens = new Dictionary<string, IToken>()
-        {
-            {"in", TokenCache.In},
-            {"as", TokenCache.As},
-            {"true", TokenCache.True},
-            {"false", TokenCache.False},
-        };
-
         public static RootToken Evaluate(TokenContext context)
         {
             return new RootToken(context.MethodContext.GetParameters(), Tokenize(context));
@@ -23,536 +15,552 @@ namespace Punica.Linq.Dynamic
         {
             List<IToken> tokens = new List<IToken>();
 
-            while (context.CanRead)
+            while (context.CurrentToken.Id != TokenId.End)
             {
-                GetToken(context, out var token);
+                var token = GetToken(context);
 
                 if (token != null)
                 {
                     tokens.Add(token);
                 }
+
             }
 
             return tokens;
         }
 
-        private static void GetToken(TokenContext context, out IToken? token)
+        private static IToken? GetToken(TokenContext context)
         {
-            token = null;
-            char c = context.Current; 
+            var token = context.CurrentToken;
 
-            switch (c)
+            if (token.Id == TokenId.Unknown)
             {
-                case '!':
-                    context.NextToken();
-                    if (context.Current == '=')
-                    {
-                        context.NextToken();
-                        token = TokenCache.NotEqual;
-                    }
-                    else
-                    {
-                        token = TokenCache.Not;
-                    }
-
-                    break;
-                case '"':
-                    AddString(context, c, out token);
-                    break;
-                case '#':
-                case '$':
-                    throw new NotImplementedException($"Character '{c}' not supported");
-                case '%':
-                    context.NextToken();
-                    token = TokenCache.Modulo;
-                    break;
-                case '&':
-                    context.NextToken();
-                    if (context.Current == '&')
-                    {
-                        context.NextToken();
-                        token = TokenCache.AndAlso;
-                    }
-                    else
-                    {
-                        token = TokenCache.BitwiseAnd;
-                    }
-
-                    break;
-                case '\'':
-                    AddString(context, c, out token);
-                    context.NextToken();
-                    break;
-                case '(':
-                    context.NextToken();
-                    token = TokenCache.LeftParenthesis;
-                    break;
-                case ')':
-                    context.NextToken();
-                    token = TokenCache.RightParenthesis;
-                    break;
-                case '*':
-                    context.NextToken();
-                    token = TokenCache.Multiply;
-                    break;
-                case '+':
-                    context.NextToken();
-                    token = TokenCache.Add;
-                    break;
-                case ',':
-                    context.NextToken();
-                    break;
-                case '-':
-                    context.NextToken();
-                    token = TokenCache.Subtract;
-                    break;
-                case '.':
-                    throw new NotImplementedException($"Character '{c}' not supported at this level");
-                    break;
-                case '/':
-                    context.NextToken();
-                    token = TokenCache.Divide;
-                    break;
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    AddNumber(context, out token);
-                    context.NextToken(); // To Skip spaces
-                    break;
-                case ':':
-                    context.NextToken();
-                    break;
-                case ';':
-                    throw new NotImplementedException($"Character ';' not supported");
-                case '<':
-                    context.NextToken();
-                    if (context.Current == '=')
-                    {
-                        context.NextToken();
-                        token = TokenCache.LessThanOrEqual;
-                    }
-                    else
-                    {
-                        token = TokenCache.LessThan;
-                    }
-
-                    break;
-                case '=':
-                    context.NextToken();
-                    if (context.Current == '=')
-                    {
-                        context.NextToken();
-                        token = TokenCache.Equal;
-                    }
-                    else
-                    {
-                        token = TokenCache.Assign;
-                    }
-
-                    break;
-                case '>':
-                    context.NextToken();
-                    if (context.Current == '=')
-                    {
-                        context.NextToken();
-                        token = TokenCache.GreaterThanOrEqual;
-                    }
-                    else
-                    {
-                        token = TokenCache.GreaterThan;
-                    }
-
-                    break;
-                case '?':
-                    context.NextToken();
-                    if (context.Current == '?')
-                    {
-                        context.NextToken();
-                        token = TokenCache.NullCoalescing;
-                    }
-                    else
-                    {
-                        token = TokenCache.Conditional;
-                    }
-
-                    break;
-                case '@':
-                    AddParameter(context, out token);
-                    break;
-                case '[':
-                    throw new NotImplementedException($"Character '{c}' not supported");
-                    break;
-                case ']':
-                    throw new NotImplementedException($"Character '{c}' not supported");
-                    break;
-                case '^':
-                    throw new NotImplementedException($"Character '^' not supported");
-                case '{':
-                    throw new NotImplementedException($"Character '{c}' not supported");
-                    break;
-                case '|':
-                    context.NextToken();
-                    if (context.Current == '|')
-                    {
-                        context.NextToken();
-                        token = TokenCache.OrElse;
-                    }
-                    else
-                    {
-                        token = TokenCache.BitwiseOr;
-                    }
-
-                    break;
-                default:
-                    if (Match(context, out var key))
-                    {
-                        context.SetPosition(context.CurrentPosition + key.Length);
-                        token = Tokens[key];
-                        context.NextToken();
-                    }
-                    else
-                    {
-                        Parse3(context, out token);
-                    }
-
-                    break;
+                throw new Exception("Unknown token");
             }
 
-
-        }
-
-        /// Person.Name or Person() or Person.Select() or  Person.Select().ToList() 
-        public static void Parse3(TokenContext context, out IToken token)
-        {
-            IExpression exp = context.MethodContext.GetParameter();
-            token = null;
-            var identifier = GetIdentifier(context);
-
-            var literal = NextToken(context);
-            while (!string.IsNullOrEmpty(literal))
+            // Person.Name or Person() or Person.Select() or  Person.Select().ToList()
+            // @person.Name or @person.Select() or  @person.Select().ToList()\
+            // new { Name} 
+            // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
+            // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
+            if (token.Id == TokenId.Identifier || token.Id == TokenId.Variable)
             {
-                if (literal == ".")
+                context.NextToken();
+                IToken? expr = null;
+
+                var nextToken = context.CurrentToken;
+
+                if (nextToken.Id == TokenId.Dot)
                 {
-                    context.NextToken(false);
-                    if (!string.IsNullOrEmpty(identifier))
-                    {
-                        exp = new PropertyToken(exp, identifier);
-                    }
+                    // Handle property or method access chain
+                    var expression = ParseVariableExpression(context, token); //handle initial variable or parameter access.
+                    var memberExpression = ParseMemberAccessExpression(context, expression); //handle chaining
+                    return memberExpression;
                 }
-                else if (literal == "(")
+                else if (nextToken.Id == TokenId.LeftParenthesis)
                 {
-                    context.MethodContext.NextDepth();
-                    context.MethodContext.AddParameter(exp);
-                    var methodToken = new MethodToken(identifier, exp, context.MethodContext.GetParameter());
-                    identifier = string.Empty;
+                    // Handle method access chain
 
-                    var parameter = new TokenList();
-                    context.NextToken();
-                    int depth = 1;
-
-                    while (context.CanRead && depth > 0)
+                    if (token.Id == TokenId.Variable)
                     {
-                        switch (context.Current)
-                        {
-                            case '(':
-                                throw new ArgumentException("Invalid Case Check algorithm"); // possibly not a option
-                            case ')':
-                                depth--;
-                                if (parameter.Tokens.Count > 0)
-                                {
-                                    methodToken.AddToken(parameter); // only add if it is on same level as there could be mix due to incorrect number of end curly brackets
-                                }
-                                context.NextToken();
-                                break;
-                            case ',':
-                                methodToken.AddToken(parameter);
-                                parameter = new TokenList();
-                                context.MethodContext.MoveToNextArgument();
-                                context.NextToken();
-                                break;
-                            default:
-                                {
-                                    GetToken(context, out var token2);
-
-                                    if (token2 != null)
-                                    {
-                                        parameter.AddToken(token2);
-                                    }
-
-                                    break;
-                                }
-                        }
+                        throw new Exception("Expected identifier before method call");
                     }
 
-                    if (depth != 0)
-                    {
-                        throw new ArgumentException("Input contains mismatched parentheses.");
-                    }
+                    // Handle method call
+                    var methodCallExpression = ParseMethodCallExpression(context, context.MethodContext.AddOrGetParameter(), token);
+                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression); //handle chaining
 
-                    context.MethodContext.PreviousDepth();
-                    token = methodToken;
-                    exp = methodToken;
-
+                    return memberExpression;
                 }
-                else if (literal == "{")
+                else if (nextToken.Id == TokenId.LeftCurlyParen)
                 {
-                    if (identifier != "new")
+                    if (token.Id == TokenId.Variable)
                     {
-                        throw new NotSupportedException($"Not able to handle {{ with this identifier {identifier}");
+                        throw new Exception("Expected identifier before constructor call");
                     }
 
-                    var newToken = new NewToken(context.MethodContext.GetParameter());
-                    identifier = string.Empty;
-
-                    var parameter = new TokenList();
-
-                    context.NextToken();
-                    int depth = 1;
-
-                    while (context.CanRead && depth > 0)
+                    if (token.Text != "new")
                     {
-                        switch (context.Current)
-                        {
-                            case '{':
-                                throw new ArgumentException("Invalid Case Check algorithm"); // possibly not a option
-                            case '}':
-                                depth--;
-                                if (parameter.Tokens.Count > 0)
-                                {
-                                    newToken.AddToken(parameter); // only add if it is on same level as there could be mix due to incorrect number of end curly brackets
-                                }
-                                context.NextToken();
-                                break;
-                            case ',':
-                                newToken.AddToken(parameter);
-                                context.NextToken();
-                                parameter = new TokenList();
-                                break;
-                            default:
-                                {
-                                    GetToken(context, out var token2);
-
-                                    if (token2 != null)
-                                    {
-                                        parameter.AddToken(token2);
-                                    }
-
-                                    break;
-                                }
-                        }
+                        throw new Exception("Expected new identifier before constructor call");
                     }
 
-                    if (depth != 0)
-                    {
-                        throw new ArgumentException("Input contains mismatched parentheses.");
-                    }
-
-                    token = newToken;
-                    exp = newToken;
+                    // Handle new call
+                    var methodCallExpression = ParseNewCallExpression(context, token);
+                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                    return memberExpression;
+                }
+                else if (nextToken.Id == TokenId.Lambda)
+                {
+                    // Handle lambda expression
+                    return new PropertyToken(null, context.CurrentToken.Text);
 
                 }
                 else
                 {
-                    identifier = literal;
+                    // Handle variable
+                    return ParseVariableExpression(context, token);
                 }
-
-                literal = NextToken(context);
-            }
-
-            if (!string.IsNullOrEmpty(identifier))
-            {
-                exp = new PropertyToken(exp, identifier);
-                token = new ValueToken(exp);
-            }
-
-        }
-
-        public static string NextToken(TokenContext context)
-        {
-            var c = context.Current;
-
-            while (char.IsWhiteSpace(c))
-            {
-                context.NextToken(false);
-                c = context.Current;
-            }
-
-            if (c == '.')
-            {
-                return ".";
-            }
-            else if (c == '(')
-            {
-                return "(";
-            }
-            else if (c == '[')
-            {
-                return "[";
-            }
-            else if (c == '{')
-            {
-                return "{";
-            }
-            if (Match(context, out var key))
-            {
-                return "";
-            }
-            else if (char.IsLetter(c))
-            {
-                return GetIdentifier(context);
             }
             else
             {
-                return "";
-            }
-
-            return null;
-        }
-
-        public static string GetIdentifier(TokenContext context)
-        {
-            // Handle operands
-            int i = context.CurrentPosition;
-            context.NextToken(false);
-
-            // TODO : have custom punctuation
-            while (context.CanRead && !(char.IsWhiteSpace(context.Current) || (char.IsPunctuation(context.Current))))
-            {
-                context.NextToken(false);
-            }
-
-
-            var stringVal = context.Substring(i, context.CurrentPosition - i);
-            return stringVal;
-        }
-
-
-        private static int Parse(int i, string expression, out IToken token)
-        {
-            token = null;
-            // Handle operands
-            int j = i + 1;
-
-
-            // TODO : have custom punctuation
-            while (j < expression.Length &&
-                   !(char.IsWhiteSpace(expression[j]) || (char.IsPunctuation(expression[j]))))
-            {
-                j++;
-            }
-
-            if (i >= expression.Length || i == j)
-            {
-                return i;
-            }
-
-            var stringVal = expression.Substring(i, j - i);
-
-            token = new ValueToken(Expression.Constant(stringVal));
-            i = j - 1;
-            return i;
-        }
-
-
-
-        private static bool Match(TokenContext context, out string index)
-        {
-            index = "";
-
-            foreach (var key in Tokens.Keys)
-            {
-                index = key;
-                var value = key;
-
-                if (context.Match(value))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static void AddParameter(TokenContext context, out IToken token)
-        {
-            if (context.VariablesInstance == null)
-            {
-                throw new ArgumentException("Parameters not supplied");
-            }
-
-            context.NextToken(false);
-            int i = context.CurrentPosition;
-            while (context.CanRead && !(char.IsPunctuation(context.Current)))
-            {
-                context.NextToken(false);
-            }
-
-            var stringVal = context.Substring(i, context.CurrentPosition - i);
-
-
-
-            token = new ValueToken(Expression.PropertyOrField(context.VariablesInstance, stringVal));
-        }
-
-        private static void AddNumber(TokenContext context, out IToken token)
-        {
-            int i = context.CurrentPosition;
-            context.NextToken(false);
-            var real = false;
-
-            while (context.CanRead && !(char.IsWhiteSpace(context.Current)))
-            {
-                if (!char.IsDigit(context.Current) && context.Current != '.')
-                {
-                    throw new ArgumentException($"Invalid number detected {context.Substring(i, context.CurrentPosition)}");
-                }
-
-                if (context.Current == '.')
-                {
-                    if (real)
-                    {
-                        throw new ArgumentException($"Invalid number detected {context.Substring(i, context.CurrentPosition)}");
-                    }
-
-                    real = true;
-                }
-
-                context.NextToken(false);
-            }
-
-            var stringVal = context.Substring(i, context.CurrentPosition - i);
-
-            token = real ? new ValueToken(Expression.Constant(double.Parse(stringVal))) : new ValueToken(Expression.Constant(int.Parse(stringVal)));
-        }
-
-
-
-        private static void AddString(TokenContext context, char c, out IToken token)
-        {
-            // Handle operands
-            context.NextToken();
-            int startIndex = context.CurrentPosition;
-
-            while (context.CanRead && context.Current != c)
-            {
                 context.NextToken();
+                return token.ParsedToken;
             }
-
-            if (context.Current != c)
-            {
-                throw new ArgumentException("Input contains invalid string literal.");
-            }
-
-            var stringVal = context.Substring(startIndex, context.CurrentPosition - startIndex);
-
-            token = new ValueToken(Expression.Constant(stringVal));
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static IExpressionToken? ParseMemberAccessExpression(TokenContext context, IExpressionToken expression)
+        {
+            while (context.CurrentToken.Id is TokenId.Dot)
+            {
+                context.NextToken(); // consume the dot
+
+                var memberToken = context.CurrentToken;
+
+                if (context.CurrentToken.Id != TokenId.Identifier)
+                {
+                    throw new Exception("Expected identifier after dot");
+                }
+
+                context.NextToken(); // consume the member
+
+                if (context.CurrentToken.Id == TokenId.LeftParenthesis)
+                {
+                    expression = ParseMethodCallExpression(context, expression, memberToken);
+                }
+                else
+                {
+                    expression = new PropertyToken(expression, memberToken.Text);
+                }
+            }
+
+            return expression;
+
+        }
+
+        //var expressionString = "Person.Select(p => new { p.Name, Age = DateTime.Now.Year - p.BirthYear }).Where(x => x.Age > 30)";
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static MethodToken ParseMethodCallExpression(TokenContext context, IExpression targetExpression, Token methodToken)
+        {
+            context.MethodContext.NextDepth();
+            //context.MethodContext.AddParameter(targetExpression);
+            var method = new MethodToken(methodToken.Text, targetExpression);
+
+            var argument = new Argument();
+            context.NextToken(); // consume parenthesis
+            int depth = 1;
+
+            while (context.CurrentToken.Id != TokenId.End && depth > 0)
+            {
+                switch (context.CurrentToken.Id)
+                {
+                    // Math.Add((3*5)+1,4)
+                    case TokenId.LeftParenthesis:
+                        depth++;
+                        argument.AddToken(context.CurrentToken.ParsedToken!);
+                        break;
+                    case TokenId.RightParenthesis:
+                        depth--;
+                        if (argument.Tokens.Count > 0) // only add if there any tokens and we are at the end of the method
+                        {
+                            if (depth == 0)
+                            {
+                                var lambdas = context.MethodContext.MoveToNextArgument();
+                                argument.AddParameters(lambdas);
+                                method.AddToken(argument);
+                            }
+                            else
+                            {
+                                argument.AddToken(context.CurrentToken.ParsedToken!);
+                            }
+                        }
+                        context.NextToken();
+                        break;
+
+                    case TokenId.Comma:
+                        // (person, petCollection) => new { OwnerName = person.FirstName, Pets = petCollection.Select(pet => pet.Name) }
+                        if (argument.IsFirstOpenParenthesis())
+                        {
+                            argument.AddToken(context.CurrentToken.ParsedToken!);
+                        }
+                        else
+                        {   // Add(FirstName, LastName) }
+                            method.AddToken(argument);
+                            argument = new Argument();
+                            var lambdas = context.MethodContext.MoveToNextArgument();
+                            argument.AddParameters(lambdas);
+                        }
+                        context.NextToken();
+                        break;
+                    case TokenId.Lambda:
+                        var paraNames = argument.ProcessLambda();
+                        context.MethodContext.AddParameters(paraNames);
+                        context.NextToken();// consume lambda
+                        break;
+                    default:
+                        {
+                            var token = GetToken(context);
+
+                            if (token != null)
+                            {
+                                argument.AddToken(token);
+                            }
+
+                            break;
+                        }
+                }
+            }
+
+            if (depth != 0)
+            {
+                throw new ArgumentException("Input contains mismatched parentheses.");
+            }
+
+            context.MethodContext.PreviousDepth();
+
+            return method;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static NewToken ParseNewCallExpression(TokenContext context, Token methodToken)
+        {
+            var newToken = new NewToken();
+
+            var parameter = new Argument();
+            context.NextToken(); // consume parenthesis
+            int depth = 1;
+
+            while (context.CurrentToken.Id != TokenId.End && depth > 0)
+            {
+                switch (context.CurrentToken.Id)
+                {
+                    case TokenId.LeftCurlyParen:
+                        throw new ArgumentException("Invalid Case Check algorithm"); // possibly not a option
+                    case TokenId.RightCurlyParen:
+                        depth--;
+                        if (parameter.Tokens.Count > 0)
+                        {
+                            newToken.AddToken(parameter);
+                        }
+                        context.NextToken();
+                        break;
+                    case TokenId.Comma:
+                        newToken.AddToken(parameter);
+                        context.NextToken();
+                        parameter = new Argument();
+                        break;
+                    default:
+                        {
+                            var token = GetToken(context);
+
+                            if (token != null)
+                            {
+                                parameter.AddToken(token);
+                            }
+
+                            break;
+                        }
+                }
+            }
+
+            if (depth != 0)
+            {
+                throw new ArgumentException("Input contains mismatched parentheses.");
+            }
+
+            return newToken;
+        }
+
+        //private static Expression[] ParseArgumentExpressions(TokenContext3 context, Type[] parameterTypes)
+        //{
+        //    var argumentExpressions = new Expression[parameterTypes.Length];
+        //    for (int i = 0; i < parameterTypes.Length; i++)
+        //    {
+        //        if (context.CurrentToken is OpenParenToken)
+        //        {
+        //            // Parse a lambda expression
+        //            argumentExpressions[i] = ParseLambdaExpression(context, parameterTypes[i]);
+        //        }
+        //        else
+        //        {
+        //            // Parse a regular expression
+        //            var expression = ParseExpression(context);
+        //            var convertedExpression = Expression.Convert(expression, parameterTypes[i]);
+        //            argumentExpressions[i] = convertedExpression;
+        //        }
+
+        //        if (i < parameterTypes.Length - 1)
+        //        {
+        //            if (context.CurrentToken is CommaToken)
+        //            {
+        //                context.NextToken(); // consume the comma
+        //            }
+        //            else
+        //            {
+        //                throw new Exception("Expected a comma token after argument expression");
+        //            }
+        //        }
+        //    }
+
+        //    return argumentExpressions;
+        //}
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static IExpressionToken ParseVariableExpression(TokenContext context, Token token)
+        {
+            if (token.Id == TokenId.Variable)
+            {
+                if (token.ParsedToken == null)
+                {
+                    throw new ArgumentNullException($"Missing Variable {token.Text}");
+                }
+
+                return (IExpressionToken)token.ParsedToken;
+            }
+            else if (token.Id == TokenId.Identifier)
+            {
+                // FirstName
+                // person => person.FirstName
+                var parameter = context.MethodContext.GetParameter(token.Text);
+                if (parameter != null)
+                {
+                    return parameter;
+                }
+                else
+                {
+                    return new PropertyToken(context.MethodContext.AddOrGetParameter(), token.Text);
+                }
+            }
+            else
+            {
+                throw new Exception($"Unexpected token {token.Id} when parsing variable expression");
+            }
+
+            //TODO: use  var variableExpression = Expression.Variable(variableType, variableName);
+        }
+
+        //public static List<IToken> Tokenize(TokenContext3 context)
+        //{
+        //    List<IToken> tokens = new List<IToken>();
+
+        //    while (context.CurrentToken.Id != TokenId.End)
+        //    {
+        //        var token = context.CurrentToken;
+
+        //        if (token.Id == TokenId.Unknown)
+        //        {
+        //            throw new Exception("Unknown token");
+
+        //        }
+
+        //        // Person.Name or Person() or Person.Select() or  Person.Select().ToList()
+        //        // @person.Name or @person.Select() or  @person.Select().ToList()\
+        //        // new { Name} 
+        //        // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
+        //        // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
+        //        if (token.Id == TokenId.Identifier || token.Id == TokenId.Variable)
+        //        {
+        //            context.NextToken();
+        //            IToken expr = null;
+
+        //            var nextToken = context.CurrentToken;
+
+        //            if (nextToken.Id == TokenId.Dot)
+        //            {
+        //                // Handle property or method access chain
+        //                var identifierToken = token as IdentifierToken;
+        //                var memberExpression = ParseMemberAccessExpression(context, identifierToken);
+
+        //                while (context.CurrentToken is DotToken)
+        //                {
+        //                    context.NextToken(); // consume the dot
+
+        //                    nextToken = context.CurrentToken;
+
+        //                    if (nextToken.Id == TokenId.Identifier)
+        //                    {
+        //                        // Property access
+        //                        var propertyToken = nextToken as IdentifierToken;
+        //                        memberExpression = ParsePropertyAccessExpression(context, memberExpression, propertyToken);
+        //                    }
+        //                    else if (nextToken.Id == TokenId.OpenParen)
+        //                    {
+        //                        // Method call
+        //                        var arguments = ParseMethodCallArguments(context);
+        //                        memberExpression = ParseMethodCallExpression(context, memberExpression, token as IdentifierToken, arguments);
+        //                    }
+        //                    else
+        //                    {
+        //                        throw new Exception($"Unexpected token {nextToken.Id} after dot");
+        //                    }
+        //                }
+
+        //                tokens.Add(new ExpressionToken(memberExpression));
+        //            }
+        //            else if (nextToken.Id == TokenId.LeftParenthesis)
+        //            {
+        //                // Handle method call
+        //                var arguments = ParseMethodCallArguments(context);
+        //                var identifierToken = token as IdentifierToken;
+        //                var methodCallExpression = ParseMethodCallExpression(context, null, identifierToken, arguments);
+
+        //                tokens.Add(new ExpressionToken(methodCallExpression));
+        //            }
+        //            else if (nextToken.Id == TokenId.Lambda)
+        //            {
+        //                // Handle lambda expression
+        //                var parameterTypes = new[] { context.GetVariableType((token as IdentifierToken).Value) };
+        //                var lambdaExpression = ParseLambdaExpression(context, parameterTypes);
+
+        //                tokens.Add(new ExpressionToken(lambdaExpression));
+        //            }
+        //            else
+        //            {
+        //                // Handle variable
+        //                var variableType = context.GetVariableType((token as IdentifierToken).Value);
+        //                tokens.Add(new VariableToken(variableType, (token as IdentifierToken).Value));
+        //            }
+
+        //        }
+        //        else
+        //        {
+        //            if (token.ParsedToken != null)
+        //            {
+        //                tokens.Add(token.ParsedToken);
+        //            }
+
+        //            context.NextToken();
+        //        }
+        //    }
+
+        //    return tokens;
+        //}
+
+        //private static Expression ParseMemberAccessExpression(TokenContext3 context, IdentifierToken identifierToken)
+        //{
+        //    var expression = ParseVariableExpression(context, identifierToken);
+
+        //    while (context.CurrentToken is DotToken)
+        //    {
+        //        context.NextToken(); // consume the dot
+
+        //        var memberToken = context.CurrentToken as IdentifierToken;
+        //        if (memberToken == null)
+        //        {
+        //            throw new Exception("Expected an identifier token after dot");
+        //        }
+
+        //        if (context.PeekNextToken() is OpenParenToken)
+        //        {
+        //            expression = ParseMethodCallExpression(context, expression, memberToken);
+        //        }
+        //        else
+        //        {
+        //            expression = ParsePropertyAccessExpression(context, expression, memberToken);
+        //        }
+        //    }
+
+        //    return expression;
+        //}
+
+        //private static Expression ParseMemberAccessExpression(TokenContext3 context, IdentifierToken identifierToken)
+        //{
+        //    var variableName = identifierToken.Value;
+        //    var variableType = context.GetVariableType(variableName);
+        //    var variableExpression = context.GetVariableExpression(variableName);
+
+        //    if (variableExpression == null)
+        //    {
+        //        variableExpression = Expression.Parameter(variableType, variableName);
+        //        context.SetVariableExpression(variableName, variableExpression);
+        //    }
+
+        //    return variableExpression;
+        //}
+
+
+
+        //private static Expression ParsePropertyAccessExpression(TokenContext3 context, Expression targetExpression, IdentifierToken propertyToken)
+        //{
+        //    var targetType = targetExpression.Type;
+        //    var propertyName = propertyToken.Value;
+
+        //    var propertyInfo = targetType.GetProperty(propertyName);
+        //    if (propertyInfo == null)
+        //    {
+        //        throw new Exception($"Property '{propertyName}' not found in type '{targetType.Name}'");
+        //    }
+
+        //    var propertyExpression = Expression.Property(targetExpression, propertyInfo);
+        //    return propertyExpression;
+        //}
+
+        //private static Expression ParseMethodCallExpression(TokenContext3 context, Expression targetExpression, IdentifierToken methodToken)
+        //{
+        //    var targetType = targetExpression.Type;
+        //    var methodName = methodToken.Value;
+
+        //    var methodInfo = targetType.GetMethod(methodName);
+        //    if (methodInfo == null)
+        //    {
+        //        throw new Exception($"Method '{methodName}' not found in type '{targetType.Name}'");
+        //    }
+
+        //    var parameterTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+        //    var argumentExpressions = ParseArgumentExpressions(context, parameterTypes);
+
+        //    var methodCallExpression = Expression.Call(targetExpression, methodInfo, argumentExpressions);
+        //    return methodCallExpression;
+        //}
+
+        //private static Expression[] ParseArgumentExpressions(TokenContext3 context, Type[] parameterTypes)
+        //{
+        //    var argumentExpressions = new Expression[parameterTypes.Length];
+        //    for (int i = 0; i < parameterTypes.Length; i++)
+        //    {
+        //        if (context.CurrentToken is OpenParenToken)
+        //        {
+        //            // Parse a lambda expression
+        //            argumentExpressions[i] = ParseLambdaExpression(context, parameterTypes[i]);
+        //        }
+        //        else
+        //        {
+        //            // Parse a regular expression
+        //            var expression = ParseExpression(context);
+        //            var convertedExpression = Expression.Convert(expression, parameterTypes[i]);
+        //            argumentExpressions[i] = convertedExpression;
+        //        }
+
+        //        if (i < parameterTypes.Length - 1)
+        //        {
+        //            if (context.CurrentToken is CommaToken)
+        //            {
+        //                context.NextToken(); // consume the comma
+        //            }
+        //            else
+        //            {
+        //                throw new Exception("Expected a comma token after argument expression");
+        //            }
+        //        }
+        //    }
+
+        //    return argumentExpressions;
+        //}
+
+        //private static Expression ParseLambdaExpression(TokenContext3 context, Type parameterType)
+        //{
+        //    var lambdaParameters = new[] { Expression.Parameter(parameterType, "x") };
+        //    var lambdaBody = ParseExpression(context);
+        //    return Expression.Lambda(lambdaBody, lambdaParameters);
+        //}
+
+        //private static Expression ParseExpression(TokenContext3 context)
+        //{
+        //    var expressionString = context.PeekNextToken().Text;
+        //    var expression = BuildExpression(expressionString);
+        //    context.NextToken(); // consume the expression token
+        //    return expression;
+        //}
     }
 }

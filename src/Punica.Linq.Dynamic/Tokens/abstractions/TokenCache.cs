@@ -20,7 +20,7 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken Not = new BitwiseNotToken();
         public static readonly IToken LeftParenthesis = new GeneralOperationToken(TokenType.OpenParen);
         public static readonly IToken RightParenthesis = new GeneralOperationToken(TokenType.CloseParen);
-        public static readonly IToken Comma = new AddToken();
+        public static readonly IToken Comma = new GeneralOperationToken(TokenType.Comma);
         public static readonly IToken Dot = new AddToken();
         public static readonly IToken QuestionMark = new AddToken();
         public static readonly IToken Colon = new ColonToken();

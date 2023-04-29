@@ -16,7 +16,7 @@
         RealNumber,
         Boolean,
         Parameter,
-        Sequence,
+        Comma,
         Value,
         List
     }

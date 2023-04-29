@@ -5,54 +5,23 @@ using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class NewToken : Operation, ITokenList, IExpression
+    public class NewToken : IExpressionToken
     {
-        public List<IToken> Tokens { get; }
-        public override short Precedence => 14;
-        public override ExpressionType ExpressionType => ExpressionType.New;
+       // public Expression MemberExpression { get; }
+       // public IExpression? Parameter { get; }
+        public List<Argument> Tokens { get; }
+        public bool IsLeftAssociative => true;
+        public short Precedence => 14;
+        public TokenType TokenType => TokenType.Operator;
+        public ExpressionType ExpressionType => ExpressionType.New;
 
-        public NewToken(IExpression? parameter)
+        public NewToken()
         {
-            Tokens = new List<IToken>();
+            Tokens = new List<Argument>();
+           // Parameter = parameter;
         }
-
-        public override Expression Evaluate(Stack<Expression> stack)
-        {
-            List<Expression> expressions = new List<Expression>();
-            foreach (var token in Tokens)
-            {
-                var list = token as ITokenList;
-
-                var expression = Process(list.Tokens);
-
-                expressions.Add(expression);
-            }
-
-            var properties = new List<AnonymousProperty>();
-            var bindkeys = new Dictionary<string, Expression>();
-
-            foreach (var expression in expressions)
-            {
-                var name = GetName(expression);
-                bindkeys[name] = expression;
-                properties.Add(new AnonymousProperty(name, expression.Type));
-            }
-
-            var type = AnonymousTypeFactory.CreateType(properties);
-
-            var bindings = new List<MemberBinding>();
-            var members = type.GetProperties();
-
-            foreach (var member in members)
-            {
-                bindings.Add(Expression.Bind(member, bindkeys[member.Name]));
-            }
-
-            return Expression.MemberInit(Expression.New(type), bindings);
-
-        }
-
-        public void AddToken(IToken token)
+        
+        public void AddToken(Argument token)
         {
             Tokens.Add(token);
         }
@@ -83,7 +52,35 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public Expression Evaluate()
         {
-            throw new NotImplementedException();
+            List<Expression> expressions = new List<Expression>();
+            foreach (var token in Tokens)
+            {
+                var expression = ExpressionEvaluator.Evaluate(token.Tokens);
+
+                expressions.Add(expression);
+            }
+
+            var properties = new List<AnonymousProperty>();
+            var bindkeys = new Dictionary<string, Expression>();
+
+            foreach (var expression in expressions)
+            {
+                var name = GetName(expression);
+                bindkeys[name] = expression;
+                properties.Add(new AnonymousProperty(name, expression.Type));
+            }
+
+            var type = AnonymousTypeFactory.CreateType(properties);
+
+            var bindings = new List<MemberBinding>();
+            var members = type.GetProperties();
+
+            foreach (var member in members)
+            {
+                bindings.Add(Expression.Bind(member, bindkeys[member.Name]));
+            }
+
+            return Expression.MemberInit(Expression.New(type), bindings);
         }
     }
 }
