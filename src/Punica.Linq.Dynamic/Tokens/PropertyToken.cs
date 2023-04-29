@@ -3,14 +3,16 @@ using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens;
 
-public class PropertyToken : IExpression
+public class PropertyToken : IExpressionToken
 {
-    private readonly IExpression _expression;
+    private readonly IExpression? _expression;
     private readonly string _propertyName;
     private Expression _value;
     private bool _evaluated;
 
-    public PropertyToken(IExpression expression, string propertyName)
+    public string Name => _propertyName;
+
+    public PropertyToken(IExpression? expression, string propertyName)
     {
         _expression = expression;
         _propertyName = propertyName;
@@ -21,10 +23,21 @@ public class PropertyToken : IExpression
     {
         if (!_evaluated)
         {
+            if (_expression == null)
+            {
+                throw new ArgumentException("expression can not be null");
+            }
+
             _value = Expression.PropertyOrField(_expression.Evaluate(), _propertyName);
             _evaluated = true;
         }
 
         return _value;
     }
+
+    //TODO remove?
+    public bool IsLeftAssociative => true;
+    public short Precedence => 0;
+    public TokenType TokenType => TokenType.Value;
+    public ExpressionType ExpressionType => ExpressionType.MemberAccess;
 }

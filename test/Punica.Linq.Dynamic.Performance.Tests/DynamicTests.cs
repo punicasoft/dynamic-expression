@@ -1,26 +1,29 @@
-﻿using System.Linq.Expressions;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 
 namespace Punica.Linq.Dynamic.Performance.Tests
 {
     [MemoryDiagnoser]
     public class DynamicTests
     {
-        //13ms
         [Benchmark]
         public void Two_Select_With_New_Expression()
         {
             string stringExp = "Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as 'Kids'} )";
-            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp, new MethodContext(Expression.Parameter(typeof(IQueryable<Person>), "arg"))));
-            var resultExpression = rootToken.Evaluate(null);
+
+            var context = new TokenContext(stringExp);
+            context.AddStartParameter(typeof(IQueryable<Person>));
+            var rootToken = Tokenizer.Evaluate(context);
+            rootToken.Evaluate();
         }
 
         [Benchmark]
         public void Select_With_New_Expression()
         {
             string stringExp = "Select( new { FirstName , LastName as 'Kids'} )";
-            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp, new MethodContext(Expression.Parameter(typeof(IQueryable<Person>), "arg"))));
-            var resultExpression = rootToken.Evaluate(null);
+            var context = new TokenContext(stringExp);
+            context.AddStartParameter(typeof(IQueryable<Person>));
+            var rootToken = Tokenizer.Evaluate(context);
+            rootToken.Evaluate();
         }
 
         [Benchmark]
@@ -28,8 +31,25 @@ namespace Punica.Linq.Dynamic.Performance.Tests
         {
             string stringExp = $"(5 > 3 && 2 <= 4 || 1 != 1 ) && 2 + 4 > 3 && 's' in 'cro' + 's'";
             var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp));
-            var resultExpression = rootToken.Evaluate(null);
+            rootToken.Evaluate();
         }
+
+        [Benchmark]
+        public void Average_Int_With_Predicate()
+        {
+            string stringExp = $"Average(x)";
+
+            var context = new TokenContext(stringExp);
+            context.AddStartParameter(typeof(List<MyClass>));
+            var rootToken = Tokenizer.Evaluate(context);
+             rootToken.Evaluate();
+        }
+
+        class MyClass
+        {
+            public int x { get; set; }
+        }
+
     }
 
     public class Person

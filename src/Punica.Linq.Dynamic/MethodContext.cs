@@ -6,6 +6,7 @@ namespace Punica.Linq.Dynamic
 {
     public class MethodContext
     {
+        private const string _arg = "_arg";
         private readonly Dictionary<int, List<ParameterToken>> _parameters = new Dictionary<int, List<ParameterToken>>();
         private int _depth = 0;
 
@@ -28,14 +29,34 @@ namespace Punica.Linq.Dynamic
         {
             foreach (var key in _parameters.Keys)
             {
-                var para = _parameters[_depth].FirstOrDefault(p => p.Name == name);
+                var para = _parameters[key].FirstOrDefault(p => p.Name == name);
 
                 if (para != null)
                 {
-                    return para;
+                    return para; //if there is lambda this should populated before this method get invoked
                 }
             }
 
+
+
+            return null;
+        }
+
+        public ParameterToken? AddOrGetParameter()
+        {
+            if (_depth == 0)
+            {
+                return _parameters[0].First(p => p.Name == _arg); //should 
+            }
+
+            if (!_parameters.ContainsKey(_depth))
+            {
+                return AddParameter(new ParameterToken(_arg + _depth));
+            }
+            else
+            {
+                return GetParameter();
+            }
             return null;
         }
 
@@ -65,20 +86,24 @@ namespace Punica.Linq.Dynamic
             _depth--;
         }
 
-        public void MoveToNextArgument()
+        public ParameterToken[] MoveToNextArgument()
         {
             if (_parameters.ContainsKey(_depth))
             {
+                var parameterTokens = _parameters[_depth].ToArray();
                 _parameters[_depth].Clear();
+                return parameterTokens;
             }
+
+            return Array.Empty<ParameterToken>();
         }
 
         public void AddParameter(IExpression expression)
         {
-            AddParameter(new ParameterToken(expression, "arg" + _depth));
+            AddParameter(new ParameterToken(expression, _arg + _depth));
         }
 
-        public void AddParameter(ParameterToken parameter)
+        public ParameterToken AddParameter(ParameterToken parameter)
         {
             foreach (var key in _parameters.Keys)
             {
@@ -101,6 +126,16 @@ namespace Punica.Linq.Dynamic
             }
 
             _parameters[_depth].Add(parameter);
+
+            return parameter;
+        }
+
+        public void AddParameters(IReadOnlyList<string> paraNames)
+        {
+            foreach (var name in paraNames)
+            {
+                AddParameter(new ParameterToken(name));
+            }
         }
     }
 }

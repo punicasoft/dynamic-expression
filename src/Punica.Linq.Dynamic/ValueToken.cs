@@ -3,30 +3,32 @@ using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
-    public class ValueToken : IToken
+    public class ValueToken : IExpressionToken
     {
         public bool IsLeftAssociative => false;
-        private Expression _value;
+        private Expression? _value;
         private bool _evaluated;
-        private readonly IExpression _expression;
+        private readonly IExpression? _expression;
         public short Precedence => 0;
 
-        public Expression Value
-        {
-            get
-            {
-                if (!_evaluated)
-                {
-                    _value = _expression.Evaluate();
-                    _evaluated = true;
-                }
+        //public Expression Value
+        //{
+        //    get
+        //    {
+        //        if (!_evaluated)
+        //        {
+        //            _value = _expression.Evaluate();
+        //            _evaluated = true;
+        //        }
 
-                return _value;
-            }
-        }
+        //        return _value;
+        //    }
+        //}
+
+       // public Expression Value => _value;
 
         public TokenType TokenType { get; }
-        public ExpressionType ExpressionType => Value.NodeType;
+        public ExpressionType ExpressionType => _value?.NodeType ?? ExpressionType.Constant;
 
         public ValueToken(Expression value)
         {
@@ -42,5 +44,15 @@ namespace Punica.Linq.Dynamic
             TokenType = TokenType.Value;
         }
 
+        public Expression Evaluate()
+        {
+            if (!_evaluated)
+            {
+                _value = _expression?.Evaluate();
+                _evaluated = true;
+            }
+
+            return _value!;
+        }
     }
 }
