@@ -6,22 +6,6 @@ namespace Punica.Linq.Dynamic.Tests
 {
     public class ParserIntegrationTesting
     {
-        //private Expression<Func<TResult>> GetExpression<TResult>(string expression)
-        //{
-        //    var evaluator = new Evaluator((Type)null, null);
-        //    var expression1 = TextParser.Evaluate(expression, evaluator);
-        //    var resultExpression = evaluator.GetFilterExpression<TResult>(expression1[0]);
-        //    return resultExpression;
-        //}
-
-        //private Expression<Func<T1, TResult>> GetExpression<T1, TResult>(string expression)
-        //{
-        //    var evaluator = new Evaluator(typeof(T1), null);
-        //    var expression1 = TextParser.Evaluate(expression, evaluator);
-        //    var resultExpression = evaluator.GetFilterExpression<T1, TResult>(expression1[0]);
-        //    return resultExpression;
-        //}
-
         private Expression<Func<TResult>> GetExpression<TResult>(string expression)
         {
             var rootToken = Tokenizer.Evaluate(new TokenContext(expression));
@@ -32,11 +16,6 @@ namespace Punica.Linq.Dynamic.Tests
 
         private Expression<Func<T1, TResult>> GetExpression<T1, TResult>(string expression)
         {
-            //var rootToken = Tokenizer2.Evaluate(new TokenContext(expression, Expression.Parameter(typeof(T1), "arg")));
-
-            //var methodContext = new MethodContext3(Expression.Parameter(typeof(T1), "arg"));
-            //var rootToken = Tokenizer3.Evaluate(new TokenContext3(expression, methodContext));
-
             var context = new TokenContext(expression);
             context.AddStartParameter(typeof(T1));
             var rootToken = Tokenizer.Evaluate(context);
@@ -47,11 +26,6 @@ namespace Punica.Linq.Dynamic.Tests
 
         private LambdaExpression GetGeneralExpression<T1, TResult>(string expression)
         {
-            // var rootToken = Tokenizer2.Evaluate(new TokenContext(expression, Expression.Parameter(typeof(T1), "arg")));
-
-            //var methodContext = new MethodContext3(Expression.Parameter(typeof(T1), "arg"));
-            //var rootToken = Tokenizer3.Evaluate(new TokenContext3(expression, methodContext));
-
             var context = new TokenContext(expression);
             context.AddStartParameter(typeof(T1));
             var rootToken = Tokenizer.Evaluate(context);
@@ -92,7 +66,7 @@ namespace Punica.Linq.Dynamic.Tests
         [Theory]
         [InlineData(5.3, 7.1)]
         [InlineData(-5.3, 7.1)]
-        [InlineData(-7.1, 5.3)]
+        [InlineData(7.1, -5.3)]
         public void Evaluate_WhenExpressionIsRealAdd_ShouldWork(double x, double y)
         {
 
@@ -476,7 +450,7 @@ namespace Punica.Linq.Dynamic.Tests
         [Fact]
         public void Evaluate_WhenExpressionIsQueryableWithWhere_ShouldWork()
         {
-            string stringExp = "Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as 'Kids'} ).Where(Kids.Any(Gender == 'Female'))";
+            string stringExp = "Select(new{ FirstName,Children.Select(new{Name , Gender}).ToList() as 'Kids'}).Where(Kids.Any(Gender == 'Female'))";
             var resultExpression = GetGeneralExpression<IQueryable<Person>, object>(stringExp);
             var actual = resultExpression.Compile().DynamicInvoke(Data.Persons.AsQueryable());
             var expected = JsonSerializer.Serialize(Data.Persons.AsQueryable()
@@ -494,12 +468,6 @@ namespace Punica.Linq.Dynamic.Tests
             string stringExp = $"Average({methodName})";
             var resultExpression = GetGeneralExpression<List<Numbers>, object>(stringExp);
             var actual = resultExpression.Compile().DynamicInvoke(Data.Num);
-
-            //var expected = Data.Num.Average(Expression.Lambda());
-            // IEnumerable<object> vals = (IEnumerable<object>)typeof(MyList).GetProperty(methodName).GetValue(Data.Collection);
-
-            //var expected = Data.Collection.Numbers.Average();
-
             Assert.Equal(expected, actual);
         }
 
