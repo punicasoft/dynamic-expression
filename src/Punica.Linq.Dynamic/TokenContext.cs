@@ -64,9 +64,21 @@ namespace Punica.Linq.Dynamic
             MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, "_arg")));
         }
 
-        public void AddIdentifier(string name, Expression expression)
+        public void AddLambda(Type type, string name)
+        {
+            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, name)));
+        }
+
+        public TokenContext AddParameter(ParameterExpression parameter)
+        {
+            MethodContext.AddParameter(new ParameterToken(parameter));
+            return this;
+        }
+
+        public TokenContext AddIdentifier(string name, Expression expression)
         {
             _identifiers.Add(name, new Identifier(name, expression));
+            return this;
         }
 
         public Identifier? GetIdentifier(string name)

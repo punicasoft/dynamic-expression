@@ -54,7 +54,7 @@ namespace Punica.Linq.Dynamic.Tokens
             var methodInfo = MethodFinder.Instance.GetMethod(memberExpression.Type, MethodName, Arguments);
             var resolver = MethodFinder.Instance.GetArgData(methodInfo);
 
-
+            int funcIndex = 0;
             //TODO handle for non extension types
             //TODO handle for indexing in resolver since .IsFunc(i) and resolver.LambdasTypes(expressions, index) different
             for (var i = 1; i < Arguments.Count + 1; i++)
@@ -65,7 +65,7 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 if (resolver.IsFunc(i))
                 {
-                    var types = resolver.LambdasTypes(expressions, index); //Might be incorrect, might need function position instead of parameter position
+                    var types = resolver.LambdasTypes(expressions, funcIndex); //Might be incorrect, might need function position instead of parameter position
                     paras = new ParameterExpression[types.Length];
 
                     for (int j = 0; j < types.Length; j++)
@@ -73,6 +73,8 @@ namespace Punica.Linq.Dynamic.Tokens
                         var type = types[j];
                         paras[j] = token.SetParameterExpressionBody(type, j);
                     }
+
+                    funcIndex++;
                 }
                 expressions[i] = token.Evaluate();
                 finalExpressions[i] = resolver.GetArguments(expressions, paras, i);

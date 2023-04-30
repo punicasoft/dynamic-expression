@@ -7,8 +7,8 @@ namespace Punica.Linq.Dynamic.Tokens
 {
     public class NewToken : IExpressionToken
     {
-       // public Expression MemberExpression { get; }
-       // public IExpression? Parameter { get; }
+        // public Expression MemberExpression { get; }
+        // public IExpression? Parameter { get; }
         public List<Argument> Tokens { get; }
         public bool IsLeftAssociative => true;
         public short Precedence => 14;
@@ -18,9 +18,9 @@ namespace Punica.Linq.Dynamic.Tokens
         public NewToken()
         {
             Tokens = new List<Argument>();
-           // Parameter = parameter;
+            // Parameter = parameter;
         }
-        
+
         public void AddToken(Argument token)
         {
             Tokens.Add(token);
@@ -35,6 +35,7 @@ namespace Punica.Linq.Dynamic.Tokens
                     return GetName(memberExpression.Expression) + memberExpression.Member.Name;
                     break;
                 case ExpressionType.Parameter:
+                case ExpressionType.Constant:
                     return "";
                     break;
                 case ExpressionType.Extension:

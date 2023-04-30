@@ -11,12 +11,6 @@ namespace Punica.Linq.Dynamic.Tokens
         public override Expression Evaluate(Stack<Expression> stack)
         {
             var right = stack.Pop();
-
-            //if (stack.Count == 0)
-            //{
-            //    return Expression.Negate(right);
-            //}
-
             var left = stack.Pop();
 
             var tuple = ConvertExpressions(left, right);

@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Punica.Extensions;
@@ -103,10 +104,14 @@ namespace Punica.Linq.Dynamic
                 if (isExtensionMethod)
                 {
 
-                    if (!IsPassableForGenericType(parameters[0].ParameterType.GetGenericTypeDefinition(), type))
+                    if (!IsPassableForGenericType2(parameters[0].ParameterType, type))
                     {
                         continue;
                     }
+                    //if (!IsPassableForGenericType(parameters[0].ParameterType.GetGenericTypeDefinition(), type))
+                    //{
+                    //    continue;
+                    //}
                     //if (parameters[0].ParameterType == type)
                     //{
                     //    bestMatches[0] = true;
@@ -159,13 +164,13 @@ namespace Punica.Linq.Dynamic
                     }
                     else
                     {
-                        if (parameters[j].ParameterType == type)
+                        if (parameters[j].ParameterType == arg.Type)
                         {
                             bestMatches[j] = true;
                             continue;
                         }
 
-                        if (!parameters[j].ParameterType.IsAssignableFrom(type))
+                        if (!parameters[j].ParameterType.IsAssignableFrom(arg.Type))
                         {
                             match = false;
                             break;
@@ -211,6 +216,18 @@ namespace Punica.Linq.Dynamic
 
             // If targetType is not a generic type definition, use the IsAssignableFrom method
             return targetType.IsAssignableFrom(givenType);
+        }
+
+        public static bool IsPassableForGenericType2(Type targetType, Type givenType)
+        {
+            if (targetType.IsOpenGeneric())
+            {
+                return IsPassableForGenericType(targetType.GetGenericTypeDefinition(), givenType);
+            }
+            else
+            {
+                return targetType.IsAssignableFrom(givenType);
+            }
         }
 
 
@@ -328,8 +345,26 @@ namespace Punica.Linq.Dynamic
                                 {
                                     var index1 = index;
                                     var i1 = i;
-                                    map[argument.Name] =
-                                        args => args[index1].Type.GetGenericArguments()[i1];
+
+                                    if (i1 == 0)
+                                    {
+                                        map[argument.Name] =
+                                            args =>
+                                            {
+                                                if (args[index1].Type.IsArray)
+                                                {
+                                                    return args[index1].Type.GetElementType()!;
+                                                }
+
+                                                return args[index1].Type.GetGenericArguments()[i1];
+                                            };
+                                    }
+                                    else
+                                    {
+                                        map[argument.Name] =
+                                            args => args[index1].Type.GetGenericArguments()[i1];
+                                    }
+
 
                                     if (!order[0].Contains(index))
                                     {
@@ -342,6 +377,11 @@ namespace Punica.Linq.Dynamic
                         var index2 = index;
                         inputs[index] = (args, paras) => args[index2];
                     }
+                }
+                else
+                {
+                    var index1 = index;
+                    inputs[index] = (args, paras) => args[index1]; //No mapping returns the same
                 }
             }
 
@@ -386,8 +426,14 @@ namespace Punica.Linq.Dynamic
 
         public MethodCallExpression Resolve(Expression[] args, Expression[] finalArgs)
         {
-            var methodInfo = _methodInfo.MakeGenericMethod(GetGenericTypeArguments(args));
-            return Expression.Call(methodInfo, finalArgs);
+            if (_methodInfo.IsGenericMethodDefinition)
+            { 
+               var methodInfo = _methodInfo.MakeGenericMethod(GetGenericTypeArguments(args));
+
+               return Expression.Call(methodInfo, finalArgs);
+            }
+
+            return Expression.Call(_methodInfo, finalArgs);
         }
 
         public Type[] GetGenericTypeArguments(Expression[] args)
