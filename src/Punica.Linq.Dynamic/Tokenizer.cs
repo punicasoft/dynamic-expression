@@ -19,7 +19,7 @@ namespace Punica.Linq.Dynamic
             {
                 var token = GetToken(context);
 
-                if (token != null)
+                if (token != null && context.CurrentToken.Id != TokenId.Lambda)
                 {
                     tokens.Add(token);
                 }
@@ -92,7 +92,7 @@ namespace Punica.Linq.Dynamic
                 else if (nextToken.Id == TokenId.Lambda)
                 {
                     // Handle lambda expression
-                    return new PropertyToken(null, context.CurrentToken.Text);
+                    return new PropertyToken(null, token.Text);
 
                 }
                 else
