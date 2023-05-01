@@ -48,8 +48,8 @@ namespace Punica.Linq.Dynamic.Tokens
             //}
 
 
-            var methodInfo = MethodFinder.Instance.GetMethod(memberExpression.Type, MethodName, Arguments);
-            var resolver = MethodFinder.Instance.GetArgData(methodInfo);
+            var metaInfo = MethodFinder.Instance.GetMethod(memberExpression.Type, MethodName, Arguments);
+            var resolver = metaInfo.Resolver;
 
             int funcIndex = 0;
             //TODO handle for non extension types
@@ -68,7 +68,7 @@ namespace Punica.Linq.Dynamic.Tokens
                     for (int j = 0; j < types.Length; j++)
                     {
                         var type = types[j];
-                        paras[j] = token.SetParameterExpressionBody(type, j);
+                        paras[j] = token.SetParameterType(type, j);
                     }
 
                     funcIndex++;

@@ -42,7 +42,7 @@ namespace Punica.Linq.Dynamic.Performance.Tests
             var context = new TokenContext(stringExp);
             context.AddStartParameter(typeof(List<MyClass>));
             var rootToken = Tokenizer.Evaluate(context);
-             rootToken.Evaluate();
+            rootToken.Evaluate();
         }
 
         class MyClass

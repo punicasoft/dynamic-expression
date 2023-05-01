@@ -11,16 +11,15 @@ namespace Punica.Linq.Dynamic
         /// <param name="tokens"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Expression Evaluate(List<IToken> tokens)
+        public static Expression Evaluate(IList<IToken> tokens)
         {
-            //If there is no tokens
             if (tokens.Count == 0)
             {
                 throw new ArgumentException("No tokens");
             }
 
             // Evaluate the expression using the shunting-yard algorithm
-            Stack<IToken> outputQueue = new Stack<IToken>();
+            LinkedList<IToken> outputQueue = new LinkedList<IToken>();
             Stack<IOperation> operatorStack = new Stack<IOperation>();
 
             for (var i = 0; i < tokens.Count; i++)
@@ -30,21 +29,27 @@ namespace Punica.Linq.Dynamic
                 switch (token.TokenType)
                 {
                     case TokenType.Operator:
-                        // Check if the '-' operator is a unary minus
+
+                        // Check if the '-'/'+' operator is a unary minus or unary plus
                         if (token.ExpressionType == ExpressionType.Subtract && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
                         {
                             token = TokenCache.NegateToken;
+                            tokens[i] = token;
+                        }
+                        else if(token.ExpressionType == ExpressionType.Add && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
+                        {
+                            token = TokenCache.UnaryPlusToken;
                             tokens[i] = token;
                         }
 
                         var operation = (IOperation)token;
 
                         // Pop operators from the stack until a lower-precedence or left-associative operator is found
-                        while (operatorStack.Count > 0 &&
-                               (operation.Precedence < operatorStack.Peek().Precedence ||
-                                operation.Precedence == operatorStack.Peek().Precedence && operation.IsLeftAssociative))
+                        while (operatorStack.TryPeek(out var topOperator) &&
+                               (operation.Precedence < topOperator.Precedence ||
+                                operation.Precedence == topOperator.Precedence && operation.IsLeftAssociative))
                         {
-                            outputQueue.Push(operatorStack.Pop());
+                            outputQueue.AddLast(operatorStack.Pop());
                         }
 
                         // Push the new operator onto the stack
@@ -58,9 +63,9 @@ namespace Punica.Linq.Dynamic
 
                     case TokenType.CloseParen:
                         // Pop operators from the stack and add them to the output queue until a left parenthesis is found
-                        while (operatorStack.Count > 0 && operatorStack.Peek().TokenType != TokenType.OpenParen)
+                        while (operatorStack.TryPeek(out var op) && op.TokenType != TokenType.OpenParen)
                         {
-                            outputQueue.Push(operatorStack.Pop());
+                            outputQueue.AddLast(operatorStack.Pop());
                         }
 
                         // If a left parenthesis was not found, the expression is invalid
@@ -75,39 +80,33 @@ namespace Punica.Linq.Dynamic
 
                     case TokenType.Unknown:
                         throw new ArgumentException("Should not be available");
-                        break;
 
                     default:
                         // Push operands onto the output queue
-                        outputQueue.Push(token);
+                        outputQueue.AddLast(token);
                         break;
                 }
             }
 
             // Pop any remaining operators from the stack and add them to the output queue
-            while (operatorStack.Count > 0)
+            while (operatorStack.TryPop(out var remainingOperator))
             {
-                if (operatorStack.Peek().TokenType == TokenType.OpenParen)
+                if (remainingOperator.TokenType == TokenType.OpenParen)
                 {
                     throw new ArgumentException("Mismatched parentheses");
                 }
 
-                outputQueue.Push(operatorStack.Pop());
+                outputQueue.AddLast(remainingOperator);
             }
-
-
-            // Evaluate Operators
-
+            
+            // Evaluate the expression using a reverse polish notation evaluator
             Stack<Expression> evaluationStack = new Stack<Expression>();
 
-            var reverse = outputQueue.Reverse();
-
-
-            foreach (var token in reverse)
+            foreach (var token in outputQueue)
             {
                 if (token is IOperation ot)
                 {
-                    evaluationStack.Push(ot.Evaluate(evaluationStack)); 
+                    evaluationStack.Push(ot.Evaluate(evaluationStack));
                 }
                 else if (token is IExpression vt)
                 {
@@ -117,12 +116,10 @@ namespace Punica.Linq.Dynamic
                 {
                     throw new ArgumentException("Invalid token");
                 }
-
             }
-
-            outputQueue.Clear();
 
             return evaluationStack.Pop();
         }
+
     }
 }

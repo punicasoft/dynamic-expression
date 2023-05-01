@@ -38,11 +38,6 @@ namespace Punica.Linq.Dynamic.Tokens
             _evaluated = false;
         }
 
-        //internal void SetExpression(IExpression expression)
-        //{
-        //    _expression = expression; //TODO handle invalid scenarios
-        //}
-
         //Remove SetExpression if this works
         internal void SetType(Type type)
         {

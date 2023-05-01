@@ -117,8 +117,8 @@ var result = exp.Compile().DynamicInvoke(Data.Persons.AsQueryable());
 
 |                         Method |      Mean |     Error |    StdDev |   Gen0 |   Gen1 | Allocated |
 |------------------------------- |----------:|----------:|----------:|-------:|-------:|----------:|
-| Two_Select_With_New_Expression | 32.223 us | 0.4045 us | 0.3378 us | 4.0283 | 0.0610 |  33.03 KB |
-|     Select_With_New_Expression | 15.513 us | 0.2949 us | 0.2897 us | 1.8616 |      - |  15.42 KB |
-|    Advanced_Boolean_Expression |  4.677 us | 0.0913 us | 0.1280 us | 0.5035 |      - |   4.14 KB |
-|     Average_Int_With_Predicate | 29.340 us | 0.2213 us | 0.2070 us | 3.8757 | 0.0305 |   31.7 KB |
+| Two_Select_With_New_Expression | 19.070 us | 0.3691 us | 0.4394 us | 2.0752 | 0.0305 |  17.05 KB |
+|     Select_With_New_Expression |  9.224 us | 0.1651 us | 0.1545 us | 0.9918 |      - |   8.15 KB |
+|    Advanced_Boolean_Expression |  4.147 us | 0.0784 us | 0.0872 us | 0.4883 |      - |   4.02 KB |
+|     Average_Int_With_Predicate | 11.084 us | 0.2194 us | 0.2052 us | 1.0223 |      - |   8.47 KB |
 

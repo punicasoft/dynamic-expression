@@ -9,4 +9,4 @@ Console.WriteLine("Hello, World!");
 BenchmarkRunner.Run<DynamicTests>();
 
 //var test = new DynamicTests();
-//test.Evaluate();
+//test.Average_Int_With_Predicate();

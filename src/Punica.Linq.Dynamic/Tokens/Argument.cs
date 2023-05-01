@@ -9,13 +9,7 @@ namespace Punica.Linq.Dynamic.Tokens
         private bool _evaluated = false;
         private Expression _expression;
         private ParameterToken[] _parameter;
-        // public IReadOnlyList<string> Lambdas => _lambdas;
-        public bool IsLeftAssociative => true;
-        public IExpression? Parameter { get; } = null;
         public List<IToken> Tokens { get; }
-        public short Precedence => 0;
-        public TokenType TokenType => TokenType.List;
-        public ExpressionType ExpressionType => ExpressionType.Extension;
 
         public Argument()
         {
@@ -99,7 +93,7 @@ namespace Punica.Linq.Dynamic.Tokens
             return false;
         }
 
-        public ParameterExpression SetParameterExpressionBody(Type type, int index)
+        public ParameterExpression SetParameterType(Type type, int index)
         {
             if (index >= _parameter.Length)
             {
@@ -162,20 +156,5 @@ namespace Punica.Linq.Dynamic.Tokens
 
         }
 
-        //public ParameterExpression? SetParameterExpressionBody(IExpression memberExpression)
-        //{
-        //    if (_parameter.Length > 1)
-        //    {
-        //        throw new Exception("More than 1 arg is not handled");
-        //    }
-
-        //    if (_parameter.Length == 1)
-        //    {
-        //        _parameter[0].SetExpression(memberExpression);
-        //        return (ParameterExpression)_parameter[0].Evaluate();
-        //    }
-
-        //    return null;
-        //}
     }
 }

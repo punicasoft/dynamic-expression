@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Punica.Extensions;
@@ -9,7 +8,7 @@ namespace Punica.Linq.Dynamic
 {
     public class MethodFinder
     {
-        private static readonly Dictionary<string, List<MethodInfo>> _methods = new Dictionary<string, List<MethodInfo>>();
+        private static readonly Dictionary<string, List<MethodMetaInfo>> _methods = new Dictionary<string, List<MethodMetaInfo>>();
 
         public static MethodFinder Instance { get; } = new MethodFinder();
 
@@ -36,11 +35,11 @@ namespace Punica.Linq.Dynamic
                 var key = $"{type.FullName}.{method.Name}.{argCount}";
                 if (!_methods.ContainsKey(key))
                 {
-                    _methods.Add(key, new List<MethodInfo>() { method });
+                    _methods.Add(key, new List<MethodMetaInfo>() { new MethodMetaInfo(method) });
                 }
                 else
                 {
-                    _methods[key].Add(method);
+                    _methods[key].Add(new MethodMetaInfo(method));
                 }
             }
 
@@ -54,7 +53,7 @@ namespace Punica.Linq.Dynamic
             }
         }
 
-        public MethodInfo GetMethod(Type type, string methodName, List<Argument> args)
+        public MethodMetaInfo GetMethod(Type type, string methodName, List<Argument> args)
         {
             var key = $"{typeof(Enumerable).FullName}.{methodName}.{args.Count}";
             if (type.IsCollection())
@@ -86,40 +85,27 @@ namespace Punica.Linq.Dynamic
             throw new ArgumentException($"Method {methodName} with {args.Count} arguments not found in {type.FullName} 2");
         }
 
-        public MethodInfo? FindBestMethod(List<MethodInfo> methods, List<Argument> args, Type type)
+        public MethodMetaInfo? FindBestMethod(List<MethodMetaInfo> metaInfos, List<Argument> args, Type type)
         {
-            MethodInfo? bestMatch = null;
+            MethodMetaInfo? bestMatch = null;
             int bestMatchCount = 0;
-            List<MethodInfo> matches = new List<MethodInfo>();
-            foreach (var method in methods)
+            List<MethodMetaInfo> matches = new List<MethodMetaInfo>();
+            foreach (var metaInfo in metaInfos)
             {
-                var isExtensionMethod = method.IsDefined(typeof(ExtensionAttribute));
-                var parameters = method.GetParameters();
-                var argMeta = GetArgData(method);
+                var parameters = metaInfo.MethodInfo.GetParameters();
+                var argMeta = metaInfo.Resolver;
 
                 int j = 0;
 
                 bool[] bestMatches = new bool[parameters.Length];
 
-                if (isExtensionMethod)
+                if (metaInfo.IsExtension)
                 {
 
                     if (!IsPassableForGenericType2(parameters[0].ParameterType, type))
                     {
                         continue;
                     }
-                    //if (!IsPassableForGenericType(parameters[0].ParameterType.GetGenericTypeDefinition(), type))
-                    //{
-                    //    continue;
-                    //}
-                    //if (parameters[0].ParameterType == type)
-                    //{
-                    //    bestMatches[0] = true;
-                    //}
-                    //else if (!parameters[0].ParameterType.IsAssignableFrom(type))
-                    //{
-                    //    continue;
-                    //}
 
                     j++;
                 }
@@ -142,7 +128,7 @@ namespace Punica.Linq.Dynamic
                         if (argMeta.EvalOrder[1].Contains(j) && argMeta.EvalOrder[0].Count == 1 && argMeta.EvalOrder[0].Contains(0))
                         {
                             var types = argMeta.LambdasTypes(new Expression[] { Expression.Parameter(type) }, 0);
-                            args[i].SetParameterExpressionBody(types[0], 0);
+                            args[i].SetParameterType(types[0], 0);
 
                             arg = args[i].GetArgumentData();
 
@@ -180,13 +166,13 @@ namespace Punica.Linq.Dynamic
 
                 if (match)
                 {
-                    matches.Add(method);
+                    matches.Add(metaInfo);
                     var count = bestMatches.Count(b => b);
 
                     if (count > bestMatchCount)
                     {
                         bestMatchCount = count;
-                        bestMatch = method;
+                        bestMatch = metaInfo;
                     }
                 }
             }
@@ -247,18 +233,12 @@ namespace Punica.Linq.Dynamic
 
             var genericParametersNames = methodInfo.GetGenericArguments().Select(g => g.Name).ToList();
 
-            //foreach (var parameter in genericParameters)
-            //{
-            //    Console.WriteLine($"Generic:{parameter.IsGenericType}, Name:{parameter.Name} , {parameter}");
-            //    //map[parameter.Name] = null;
-            //}
-
             for (var index = 0; index < parameters.Length; index++)
             {
                 var arg = parameters[index];
                 if (arg.ParameterType.IsGenericType)
                 {
-                    if (arg.ParameterType.Name.StartsWith("Func"))
+                    if (arg.ParameterType.Name.StartsWith("Func", StringComparison.Ordinal))
                     {
                         var typeArguments = arg.ParameterType.GetGenericArguments();
                         var last = typeArguments.Last();
@@ -266,7 +246,7 @@ namespace Punica.Linq.Dynamic
                         if (genericParametersNames.Contains(last.Name) && !map.ContainsKey(last.Name))
                         {
                             var index1 = index;
-                            map[last.Name] = args => args[index1].Type;  // $"Func_[{index}].Type";
+                            map[last.Name] = args => args[index1].Type;  
                             order[2].Add(index);
                         }
 
@@ -477,5 +457,22 @@ namespace Punica.Linq.Dynamic
             var func = _methodArgumentResolvers[index];
             return func(args, paras);
         }
+    }
+
+
+    public class MethodMetaInfo
+    {
+        private SignatureResolver? _resolver;
+        public MethodInfo MethodInfo { get; }
+        public bool IsExtension { get; }
+
+        public SignatureResolver Resolver => _resolver ??= MethodFinder.Instance.GetArgData(MethodInfo);
+
+        public MethodMetaInfo(MethodInfo methodInfo)
+        {
+            MethodInfo = methodInfo;
+            IsExtension = methodInfo.IsDefined(typeof(ExtensionAttribute), false);
+        }
+        
     }
 }
