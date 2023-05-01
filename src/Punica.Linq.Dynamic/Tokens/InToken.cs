@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Linq.Expressions;
 using Punica.Extensions;
+using Punica.Linq.Dynamic.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 using Punica.Linq.Dynamic.Reflection;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {

@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
+using Punica.Linq.Dynamic.Tokens;
 
-namespace Punica.Linq.Dynamic.Tokens.abstractions
+namespace Punica.Linq.Dynamic.abstractions
 {
     public static class TokenCache
     {
@@ -42,5 +43,5 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken As = new AsToken();
     }
 
-  
+
 }

@@ -1,24 +1,19 @@
 ﻿using System.Linq.Expressions;
 using Punica.Dynamic;
+using Punica.Linq.Dynamic.abstractions;
 using Punica.Linq.Dynamic.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class NewToken : IExpressionToken
+    public class NewToken : IExpression
     {
-        // public Expression MemberExpression { get; }
-        // public IExpression? Parameter { get; }
         public List<Argument> Tokens { get; }
-        public bool IsLeftAssociative => true;
-        public short Precedence => 14;
-        public TokenType TokenType => TokenType.Operator;
+        public TokenType TokenType => TokenType.Member;
         public ExpressionType ExpressionType => ExpressionType.New;
 
         public NewToken()
         {
             Tokens = new List<Argument>();
-            // Parameter = parameter;
         }
 
         public void AddToken(Argument token)
@@ -37,24 +32,18 @@ namespace Punica.Linq.Dynamic.Tokens
                     {
                         return GetName(memberExpression.Expression) + memberExpression.Member.Name;
                     }
-                    else
-                    {
-                        return memberExpression.Member.Name;
-                    }
-                    break;
+
+                    return memberExpression.Member.Name;
                 case ExpressionType.Parameter:
                     return ((ParameterExpression)expression).Name;
-                    break;
                 case ExpressionType.Constant:
                     return "";
-                    break;
                 case ExpressionType.Extension:
                     if (expression is AliasExpression e)
                     {
                         return e.Alias;
                     }
                     throw new ArgumentException("Invalid Expression");
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }

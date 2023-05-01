@@ -1,6 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using Punica.Linq.Dynamic.abstractions;
 using Punica.Linq.Dynamic.Tokens;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
@@ -109,7 +110,7 @@ namespace Punica.Linq.Dynamic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IExpressionToken? ParseMemberAccessExpression(TokenContext context, IExpressionToken expression)
+        private static IExpression? ParseMemberAccessExpression(TokenContext context, IExpression expression)
         {
             while (context.CurrentToken.Id is TokenId.Dot)
             {
@@ -271,43 +272,9 @@ namespace Punica.Linq.Dynamic
             return newToken;
         }
 
-        //private static Expression[] ParseArgumentExpressions(TokenContext3 context, Type[] parameterTypes)
-        //{
-        //    var argumentExpressions = new Expression[parameterTypes.Length];
-        //    for (int i = 0; i < parameterTypes.Length; i++)
-        //    {
-        //        if (context.CurrentToken is OpenParenToken)
-        //        {
-        //            // Parse a lambda expression
-        //            argumentExpressions[i] = ParseLambdaExpression(context, parameterTypes[i]);
-        //        }
-        //        else
-        //        {
-        //            // Parse a regular expression
-        //            var expression = ParseExpression(context);
-        //            var convertedExpression = Expression.Convert(expression, parameterTypes[i]);
-        //            argumentExpressions[i] = convertedExpression;
-        //        }
-
-        //        if (i < parameterTypes.Length - 1)
-        //        {
-        //            if (context.CurrentToken is CommaToken)
-        //            {
-        //                context.NextToken(); // consume the comma
-        //            }
-        //            else
-        //            {
-        //                throw new Exception("Expected a comma token after argument expression");
-        //            }
-        //        }
-        //    }
-
-        //    return argumentExpressions;
-        //}
-
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IExpressionToken ParseVariableExpression(TokenContext context, Token token)
+        private static IExpression ParseVariableExpression(TokenContext context, Token token)
         {
             if (token.Id == TokenId.Variable)
             {
@@ -316,7 +283,7 @@ namespace Punica.Linq.Dynamic
                     throw new ArgumentNullException($"Missing Variable {token.Text}");
                 }
 
-                return (IExpressionToken)token.ParsedToken;
+                return (IExpression)token.ParsedToken;
             }
             else if (token.Id == TokenId.Identifier)
             {
@@ -340,227 +307,6 @@ namespace Punica.Linq.Dynamic
             //TODO: use  var variableExpression = Expression.Variable(variableType, variableName);
         }
 
-        //public static List<IToken> Tokenize(TokenContext3 context)
-        //{
-        //    List<IToken> tokens = new List<IToken>();
-
-        //    while (context.CurrentToken.Id != TokenId.End)
-        //    {
-        //        var token = context.CurrentToken;
-
-        //        if (token.Id == TokenId.Unknown)
-        //        {
-        //            throw new Exception("Unknown token");
-
-        //        }
-
-        //        // Person.Name or Person() or Person.Select() or  Person.Select().ToList()
-        //        // @person.Name or @person.Select() or  @person.Select().ToList()\
-        //        // new { Name} 
-        //        // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
-        //        // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
-        //        if (token.Id == TokenId.Identifier || token.Id == TokenId.Variable)
-        //        {
-        //            context.NextToken();
-        //            IToken expr = null;
-
-        //            var nextToken = context.CurrentToken;
-
-        //            if (nextToken.Id == TokenId.Dot)
-        //            {
-        //                // Handle property or method access chain
-        //                var identifierToken = token as IdentifierToken;
-        //                var memberExpression = ParseMemberAccessExpression(context, identifierToken);
-
-        //                while (context.CurrentToken is DotToken)
-        //                {
-        //                    context.NextToken(); // consume the dot
-
-        //                    nextToken = context.CurrentToken;
-
-        //                    if (nextToken.Id == TokenId.Identifier)
-        //                    {
-        //                        // Property access
-        //                        var propertyToken = nextToken as IdentifierToken;
-        //                        memberExpression = ParsePropertyAccessExpression(context, memberExpression, propertyToken);
-        //                    }
-        //                    else if (nextToken.Id == TokenId.OpenParen)
-        //                    {
-        //                        // Method call
-        //                        var arguments = ParseMethodCallArguments(context);
-        //                        memberExpression = ParseMethodCallExpression(context, memberExpression, token as IdentifierToken, arguments);
-        //                    }
-        //                    else
-        //                    {
-        //                        throw new Exception($"Unexpected token {nextToken.Id} after dot");
-        //                    }
-        //                }
-
-        //                tokens.Add(new ExpressionToken(memberExpression));
-        //            }
-        //            else if (nextToken.Id == TokenId.LeftParenthesis)
-        //            {
-        //                // Handle method call
-        //                var arguments = ParseMethodCallArguments(context);
-        //                var identifierToken = token as IdentifierToken;
-        //                var methodCallExpression = ParseMethodCallExpression(context, null, identifierToken, arguments);
-
-        //                tokens.Add(new ExpressionToken(methodCallExpression));
-        //            }
-        //            else if (nextToken.Id == TokenId.Lambda)
-        //            {
-        //                // Handle lambda expression
-        //                var parameterTypes = new[] { context.GetVariableType((token as IdentifierToken).Value) };
-        //                var lambdaExpression = ParseLambdaExpression(context, parameterTypes);
-
-        //                tokens.Add(new ExpressionToken(lambdaExpression));
-        //            }
-        //            else
-        //            {
-        //                // Handle variable
-        //                var variableType = context.GetVariableType((token as IdentifierToken).Value);
-        //                tokens.Add(new VariableToken(variableType, (token as IdentifierToken).Value));
-        //            }
-
-        //        }
-        //        else
-        //        {
-        //            if (token.ParsedToken != null)
-        //            {
-        //                tokens.Add(token.ParsedToken);
-        //            }
-
-        //            context.NextToken();
-        //        }
-        //    }
-
-        //    return tokens;
-        //}
-
-        //private static Expression ParseMemberAccessExpression(TokenContext3 context, IdentifierToken identifierToken)
-        //{
-        //    var expression = ParseVariableExpression(context, identifierToken);
-
-        //    while (context.CurrentToken is DotToken)
-        //    {
-        //        context.NextToken(); // consume the dot
-
-        //        var memberToken = context.CurrentToken as IdentifierToken;
-        //        if (memberToken == null)
-        //        {
-        //            throw new Exception("Expected an identifier token after dot");
-        //        }
-
-        //        if (context.PeekNextToken() is OpenParenToken)
-        //        {
-        //            expression = ParseMethodCallExpression(context, expression, memberToken);
-        //        }
-        //        else
-        //        {
-        //            expression = ParsePropertyAccessExpression(context, expression, memberToken);
-        //        }
-        //    }
-
-        //    return expression;
-        //}
-
-        //private static Expression ParseMemberAccessExpression(TokenContext3 context, IdentifierToken identifierToken)
-        //{
-        //    var variableName = identifierToken.Value;
-        //    var variableType = context.GetVariableType(variableName);
-        //    var variableExpression = context.GetVariableExpression(variableName);
-
-        //    if (variableExpression == null)
-        //    {
-        //        variableExpression = Expression.Parameter(variableType, variableName);
-        //        context.SetVariableExpression(variableName, variableExpression);
-        //    }
-
-        //    return variableExpression;
-        //}
-
-
-
-        //private static Expression ParsePropertyAccessExpression(TokenContext3 context, Expression targetExpression, IdentifierToken propertyToken)
-        //{
-        //    var targetType = targetExpression.Type;
-        //    var propertyName = propertyToken.Value;
-
-        //    var propertyInfo = targetType.GetProperty(propertyName);
-        //    if (propertyInfo == null)
-        //    {
-        //        throw new Exception($"Property '{propertyName}' not found in type '{targetType.Name}'");
-        //    }
-
-        //    var propertyExpression = Expression.Property(targetExpression, propertyInfo);
-        //    return propertyExpression;
-        //}
-
-        //private static Expression ParseMethodCallExpression(TokenContext3 context, Expression targetExpression, IdentifierToken methodToken)
-        //{
-        //    var targetType = targetExpression.Type;
-        //    var methodName = methodToken.Value;
-
-        //    var methodInfo = targetType.GetMethod(methodName);
-        //    if (methodInfo == null)
-        //    {
-        //        throw new Exception($"Method '{methodName}' not found in type '{targetType.Name}'");
-        //    }
-
-        //    var parameterTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
-        //    var argumentExpressions = ParseArgumentExpressions(context, parameterTypes);
-
-        //    var methodCallExpression = Expression.Call(targetExpression, methodInfo, argumentExpressions);
-        //    return methodCallExpression;
-        //}
-
-        //private static Expression[] ParseArgumentExpressions(TokenContext3 context, Type[] parameterTypes)
-        //{
-        //    var argumentExpressions = new Expression[parameterTypes.Length];
-        //    for (int i = 0; i < parameterTypes.Length; i++)
-        //    {
-        //        if (context.CurrentToken is OpenParenToken)
-        //        {
-        //            // Parse a lambda expression
-        //            argumentExpressions[i] = ParseLambdaExpression(context, parameterTypes[i]);
-        //        }
-        //        else
-        //        {
-        //            // Parse a regular expression
-        //            var expression = ParseExpression(context);
-        //            var convertedExpression = Expression.Convert(expression, parameterTypes[i]);
-        //            argumentExpressions[i] = convertedExpression;
-        //        }
-
-        //        if (i < parameterTypes.Length - 1)
-        //        {
-        //            if (context.CurrentToken is CommaToken)
-        //            {
-        //                context.NextToken(); // consume the comma
-        //            }
-        //            else
-        //            {
-        //                throw new Exception("Expected a comma token after argument expression");
-        //            }
-        //        }
-        //    }
-
-        //    return argumentExpressions;
-        //}
-
-        //private static Expression ParseLambdaExpression(TokenContext3 context, Type parameterType)
-        //{
-        //    var lambdaParameters = new[] { Expression.Parameter(parameterType, "x") };
-        //    var lambdaBody = ParseExpression(context);
-        //    return Expression.Lambda(lambdaBody, lambdaParameters);
-        //}
-
-        //private static Expression ParseExpression(TokenContext3 context)
-        //{
-        //    var expressionString = context.PeekNextToken().Text;
-        //    var expression = BuildExpression(expressionString);
-        //    context.NextToken(); // consume the expression token
-        //    return expression;
-        //}
+      
     }
 }

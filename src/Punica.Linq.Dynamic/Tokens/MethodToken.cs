@@ -1,18 +1,15 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class MethodToken : IExpressionToken
+    public class MethodToken : IExpression
     {
-        //private readonly int _depth;
         public string MethodName { get; }
         public IExpression MemberExpression { get; }
         private IExpression? Parameter { get; }
         public List<Argument> Arguments { get; }
-        public bool IsLeftAssociative => false;
-        public short Precedence => 14;
-        public TokenType TokenType => TokenType.Operator;
+        public TokenType TokenType => TokenType.Member;
         public ExpressionType ExpressionType => ExpressionType.Call;
 
 

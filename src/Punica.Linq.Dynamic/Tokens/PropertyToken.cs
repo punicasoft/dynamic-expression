@@ -1,9 +1,9 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens;
 
-public class PropertyToken : IExpressionToken
+public class PropertyToken : IExpression
 {
     private readonly IExpression? _expression;
     private readonly string _propertyName;
@@ -34,10 +34,7 @@ public class PropertyToken : IExpressionToken
 
         return _value;
     }
-
-    //TODO remove?
-    public bool IsLeftAssociative => true;
-    public short Precedence => 0;
+    
     public TokenType TokenType => TokenType.Value;
     public ExpressionType ExpressionType => ExpressionType.MemberAccess;
 }

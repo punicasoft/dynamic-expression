@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Linq.Expressions;
+using Punica.Linq.Dynamic.abstractions;
 using Punica.Linq.Dynamic.Tokens;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic
 {

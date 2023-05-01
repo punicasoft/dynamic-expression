@@ -1,12 +1,12 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class Argument //: ITokenList
+    public class Argument
     {
         private readonly List<string> _lambdas = new List<string>();
-        private bool _evaluvated = false;
+        private bool _evaluated = false;
         private Expression _expression;
         private ParameterToken[] _parameter;
         // public IReadOnlyList<string> Lambdas => _lambdas;
@@ -35,19 +35,12 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public IReadOnlyList<string> ProcessLambda()
         {
-            //bool openParenthesis = false;
-            //bool closeParenthesis = false;
             short depth = 0;
 
             foreach (var token in Tokens)
             {
                 if (token.TokenType == TokenType.OpenParen)
                 {
-                    //if (!openParenthesis)
-                    //{
-                    //    openParenthesis = true;
-                    //    continue;
-                    //}
                     if (depth == 0)
                     {
                         depth++;
@@ -59,12 +52,7 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 if (token.TokenType == TokenType.CloseParen)
                 {
-                    //if (!closeParenthesis && openParenthesis && Tokens.IndexOf(token) == Tokens.Count - 1)
-                    //{
-                    //    closeParenthesis = true;
-                    //    continue;
-                    //}
-                    if (depth == 1 && Tokens.IndexOf(token) == Tokens.Count - 1)
+                    if (depth == 1 && Tokens.IndexOf(token) == Tokens.Count - 1) // must be the last token
                     {
                         depth--;
                         continue;
@@ -148,10 +136,10 @@ namespace Punica.Linq.Dynamic.Tokens
 
         internal Expression Evaluate()
         {
-            if (!_evaluvated)
+            if (!_evaluated)
             {
                 _expression = ExpressionEvaluator.Evaluate(Tokens);
-                _evaluvated = true;
+                _evaluated = true;
                 return _expression;
             }
 

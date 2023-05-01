@@ -1,31 +1,13 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
-    public class ValueToken : IExpressionToken
+    public class ValueToken : IExpression
     {
-        public bool IsLeftAssociative => false;
         private Expression? _value;
         private bool _evaluated;
         private readonly IExpression? _expression;
-        public short Precedence => 0;
-
-        //public Expression Value
-        //{
-        //    get
-        //    {
-        //        if (!_evaluated)
-        //        {
-        //            _value = _expression.Evaluate();
-        //            _evaluated = true;
-        //        }
-
-        //        return _value;
-        //    }
-        //}
-
-       // public Expression Value => _value;
 
         public TokenType TokenType { get; }
         public ExpressionType ExpressionType => _value?.NodeType ?? ExpressionType.Constant;

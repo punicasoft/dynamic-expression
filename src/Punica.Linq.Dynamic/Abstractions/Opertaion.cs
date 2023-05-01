@@ -1,8 +1,9 @@
 ﻿using System.Linq.Expressions;
+using Punica.Linq.Dynamic.abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens.abstractions
+namespace Punica.Linq.Dynamic.Abstractions
 {
-    public abstract class Operation: IOperation
+    public abstract class Operation : IOperation
     {
         public virtual bool IsLeftAssociative => true;
         public abstract short Precedence { get; }

@@ -1,5 +1,5 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
@@ -21,7 +21,7 @@ namespace Punica.Linq.Dynamic
 
             // Evaluate the expression using the shunting-yard algorithm
             Stack<IToken> outputQueue = new Stack<IToken>();
-            Stack<IToken> operatorStack = new Stack<IToken>();
+            Stack<IOperation> operatorStack = new Stack<IOperation>();
 
             for (var i = 0; i < tokens.Count; i++)
             {
@@ -30,7 +30,6 @@ namespace Punica.Linq.Dynamic
                 switch (token.TokenType)
                 {
                     case TokenType.Operator:
-
                         // Check if the '-' operator is a unary minus
                         if (token.ExpressionType == ExpressionType.Subtract && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
                         {
@@ -38,21 +37,23 @@ namespace Punica.Linq.Dynamic
                             tokens[i] = token;
                         }
 
+                        var operation = (IOperation)token;
+
                         // Pop operators from the stack until a lower-precedence or left-associative operator is found
                         while (operatorStack.Count > 0 &&
-                               (token.Precedence < operatorStack.Peek().Precedence ||
-                                token.Precedence == operatorStack.Peek().Precedence && token.IsLeftAssociative))
+                               (operation.Precedence < operatorStack.Peek().Precedence ||
+                                operation.Precedence == operatorStack.Peek().Precedence && operation.IsLeftAssociative))
                         {
                             outputQueue.Push(operatorStack.Pop());
                         }
 
                         // Push the new operator onto the stack
-                        operatorStack.Push(token);
+                        operatorStack.Push(operation);
                         break;
 
                     case TokenType.OpenParen:
                         // Push left parentheses onto the stack
-                        operatorStack.Push(token);
+                        operatorStack.Push((IOperation)token);
                         break;
 
                     case TokenType.CloseParen:
@@ -122,57 +123,6 @@ namespace Punica.Linq.Dynamic
             outputQueue.Clear();
 
             return evaluationStack.Pop();
-        }
-
-        public static (Expression left, Expression right) ConvertExpressions(Expression left, Expression right)
-        {
-            if (left.Type == right.Type)
-            {
-                return (left, right);
-            }
-
-            if (left.Type == typeof(double) || right.Type == typeof(double))
-            {
-                return (Convert(left, typeof(double)), Convert(right, typeof(double)));
-            }
-
-            if (left.Type == typeof(float) || right.Type == typeof(float))
-            {
-                return (Convert(left, typeof(float)), Convert(right, typeof(float)));
-            }
-
-            if (left.Type == typeof(long) || right.Type == typeof(long))
-            {
-                return (Convert(left, typeof(long)), Convert(right, typeof(long)));
-            }
-
-            if (left.Type == typeof(int) || right.Type == typeof(int))
-            {
-                return (Convert(left, typeof(int)), Convert(right, typeof(int)));
-            }
-
-            if (left.Type == typeof(short) || right.Type == typeof(short))
-            {
-                return (Convert(left, typeof(short)), Convert(right, typeof(short)));
-            }
-
-            if (left.Type == typeof(byte) || right.Type == typeof(byte))
-            {
-                return (Convert(left, typeof(byte)), Convert(right, typeof(byte)));
-            }
-
-            throw new InvalidOperationException("Cannot add types " + left.Type + " and " + right.Type);
-
-        }
-
-        private static Expression Convert(Expression expression, Type type)
-        {
-            if (expression.Type == type)
-            {
-                return expression;
-            }
-
-            return Expression.Convert(expression, type);
         }
     }
 }
