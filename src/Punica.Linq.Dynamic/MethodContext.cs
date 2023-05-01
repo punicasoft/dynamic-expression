@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics;
+using System.Linq.Expressions;
 using Punica.Linq.Dynamic.Tokens;
 using Punica.Linq.Dynamic.Tokens.abstractions;
 
@@ -130,8 +131,28 @@ namespace Punica.Linq.Dynamic
             return parameter;
         }
 
+        /// <summary>
+        /// Call this to clear temp arguments added during lambda variable detection
+        /// Call after detecting => in a argument. 
+        /// </summary>
+        /// <exception cref="UnreachableException"></exception>
+        public void ClearDepthArgs()
+        {
+            if (_parameters.ContainsKey(_depth))
+            {
+                if (_parameters[_depth].Count > 1)
+                {
+                    throw new UnreachableException(
+                        "There can not be any other arg than first arg added during lambda variable detection");
+                }
+                _parameters[_depth].Clear();
+            }
+
+        }
+
         public void AddParameters(IReadOnlyList<string> paraNames)
         {
+            ClearDepthArgs();
             foreach (var name in paraNames)
             {
                 AddParameter(new ParameterToken(name));

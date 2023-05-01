@@ -143,7 +143,6 @@ namespace Punica.Linq.Dynamic
         private static MethodToken ParseMethodCallExpression(TokenContext context, IExpression targetExpression, Token methodToken)
         {
             context.MethodContext.NextDepth();
-            //context.MethodContext.AddParameter(targetExpression);
             var method = new MethodToken(methodToken.Text, targetExpression);
 
             var argument = new Argument();
@@ -158,12 +157,13 @@ namespace Punica.Linq.Dynamic
                     case TokenId.LeftParenthesis:
                         depth++;
                         argument.AddToken(context.CurrentToken.ParsedToken!);
+                        context.NextToken();
                         break;
                     case TokenId.RightParenthesis:
                         depth--;
-                        if (argument.Tokens.Count > 0) // only add if there any tokens and we are at the end of the method
+                        if (argument.Tokens.Count > 0)
                         {
-                            if (depth == 0)
+                            if (depth == 0)  // only add if there any tokens and we are at the end of the method
                             {
                                 var lambdas = context.MethodContext.MoveToNextArgument();
                                 argument.AddParameters(lambdas);
@@ -185,10 +185,10 @@ namespace Punica.Linq.Dynamic
                         }
                         else
                         {   // Add(FirstName, LastName) }
-                            method.AddToken(argument);
-                            argument = new Argument();
                             var lambdas = context.MethodContext.MoveToNextArgument();
                             argument.AddParameters(lambdas);
+                            method.AddToken(argument);
+                            argument = new Argument();
                         }
                         context.NextToken();
                         break;

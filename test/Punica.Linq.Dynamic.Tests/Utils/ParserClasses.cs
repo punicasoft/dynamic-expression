@@ -138,7 +138,11 @@
         public static string[] Fruits =
         {
             "apple", "passionfruit", "banana", "mango",
-            "orange", "blueberry", "grape", "strawberry","banana","blueberry" };
+            "orange", "blueberry", "grape", "strawberry","banana","blueberry"
+        };
+
+       
+
     }
 
     public class Numbers

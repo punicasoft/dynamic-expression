@@ -5,7 +5,7 @@ using Punica.Linq.Dynamic.Tests.Utils;
 namespace Punica.Linq.Dynamic.Tests
 {
     //https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.contains?view=net-8.0
-    public class EnumerableMethodTesting : ExpressionTestsBase
+    public class EnumerableMethodTests : ExpressionTestsBase
     {
         [Fact]
         public void Evaluate_All_ShouldWork()
@@ -173,6 +173,45 @@ namespace Punica.Linq.Dynamic.Tests
         }
 
 
+        //  Test Select with index working
+        [Fact]
+        public void Evaluate_Select_Index_ShouldWork()
+        {
+            List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+            var expression = GetGeneralExpression<List<int>>("Select((x, index) => new { x, index})");
+            var actual = expression.Compile().DynamicInvoke(numbers);
+            var expected = numbers.Select((x, index) => new {x, index});
+            var expectedJson = JsonSerializer.Serialize(expected);
+            var actualJson = JsonSerializer.Serialize(actual);
+            Assert.Equal(expectedJson, actualJson);
+        }
+
+        // Test Join should work
+        [Fact]
+        public void Evaluate_Join_ShouldWork()
+        {
+            Person magnus = new Person { FirstName = "Magnus" };
+            Person terry = new Person { FirstName = "Terry" };
+            Person charlotte = new Person { FirstName = "Charlotte" };
+
+            Pet barley = new Pet { Name = "Barley", Owner = terry };
+            Pet boots = new Pet { Name = "Boots", Owner = terry };
+            Pet whiskers = new Pet { Name = "Whiskers", Owner = charlotte };
+            Pet daisy = new Pet { Name = "Daisy", Owner = magnus };
+
+            List<Person> people = new List<Person> { magnus, terry, charlotte };
+            List<Pet> pets = new List<Pet> { barley, boots, whiskers, daisy };
+
+            var expression = GetGeneralExpression("people.Join(pets, person => person, pet => pet.Owner, (person, pet) => new { person.FirstName as 'OwnerName', pet.Name as 'Pet' })", null,Expression.Parameter(people.GetType(), "people"), Expression.Parameter(pets.GetType(), "pets"));
+            var actual = expression.Compile().DynamicInvoke(people, pets);
+            var expected = people.Join(pets, person => person, pet => pet.Owner, (person, pet) => new { OwnerName = person.FirstName, Pet = pet.Name });
+            var expectedJson = JsonSerializer.Serialize(expected);
+            var actualJson = JsonSerializer.Serialize(actual);
+            Assert.Equal(expectedJson, actualJson);
+           
+        }
+
         [Fact]
         public void Evaluate_WhenExpressionIsQueryable_ShouldWork()
         {
@@ -203,29 +242,29 @@ namespace Punica.Linq.Dynamic.Tests
         ///// TODO add date time add, and other operations, string operations, guid
 
 
-        //[Fact]
-        //public void Evaluate_Select2_Should_Work()
-        //{
-        //    List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+        [Fact]
+        public void Evaluate_Select2_Should_Work()
+        {
+            List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
 
-        //    // Using the first Select overload: Func<TSource, TResult>
-        //    // Doubles each number in the list
-        //    IEnumerable<int> doubledNumbers = numbers.Select(x => x * 2);
-        //    Console.WriteLine("Doubled numbers:");
-        //    foreach (int number in doubledNumbers)
-        //    {
-        //        Console.WriteLine(number);
-        //    }
+            // Using the first Select overload: Func<TSource, TResult>
+            // Doubles each number in the list
+            IEnumerable<int> doubledNumbers = numbers.Select(x => x * 2);
+            Console.WriteLine("Doubled numbers:");
+            foreach (int number in doubledNumbers)
+            {
+                Console.WriteLine(number);
+            }
 
-        //    // Using the second Select overload: Func<TSource, int, TResult>
-        //    // Creates a tuple with the number and its index in the list
-        //    IEnumerable<(int Number, int Index)> numbersWithIndex = numbers.Select((x, index) => (Number: x, Index: index));
-        //    Console.WriteLine("\nNumbers with index:");
-        //    foreach (var numberWithIndex in numbersWithIndex)
-        //    {
-        //        Console.WriteLine($"Number: {numberWithIndex.Number}, Index: {numberWithIndex.Index}");
-        //    }
-        //}
+            // Using the second Select overload: Func<TSource, int, TResult>
+            // Creates a tuple with the number and its index in the list
+            IEnumerable<(int Number, int Index)> numbersWithIndex = numbers.Select((x, index) => (Number: x, Index: index));
+            Console.WriteLine("\nNumbers with index:");
+            foreach (var numberWithIndex in numbersWithIndex)
+            {
+                Console.WriteLine($"Number: {numberWithIndex.Number}, Index: {numberWithIndex.Index}");
+            }
+        }
 
         //[Fact]
         //public void Evaluate_GroupJoin_ShouldWork()

@@ -35,16 +35,22 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public IReadOnlyList<string> ProcessLambda()
         {
-            bool openParenthesis = false;
-            bool closeParenthesis = false;
+            //bool openParenthesis = false;
+            //bool closeParenthesis = false;
+            short depth = 0;
 
             foreach (var token in Tokens)
             {
                 if (token.TokenType == TokenType.OpenParen)
                 {
-                    if (!openParenthesis)
+                    //if (!openParenthesis)
+                    //{
+                    //    openParenthesis = true;
+                    //    continue;
+                    //}
+                    if (depth == 0)
                     {
-                        openParenthesis = true;
+                        depth++;
                         continue;
                     }
 
@@ -53,9 +59,14 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 if (token.TokenType == TokenType.CloseParen)
                 {
-                    if (!closeParenthesis && openParenthesis && Tokens.IndexOf(token) == Tokens.Count - 1)
+                    //if (!closeParenthesis && openParenthesis && Tokens.IndexOf(token) == Tokens.Count - 1)
+                    //{
+                    //    closeParenthesis = true;
+                    //    continue;
+                    //}
+                    if (depth == 1 && Tokens.IndexOf(token) == Tokens.Count - 1)
                     {
-                        closeParenthesis = true;
+                        depth--;
                         continue;
                     }
 
@@ -80,10 +91,12 @@ namespace Punica.Linq.Dynamic.Tokens
                 }
             }
 
-            if (!openParenthesis || !closeParenthesis)
+            if (depth != 0)
             {
                 throw new ArgumentException("Invalid Expression");
             }
+
+            Tokens.Clear();
 
             return _lambdas;
         }

@@ -32,9 +32,19 @@ namespace Punica.Linq.Dynamic.Tokens
             {
                 case ExpressionType.MemberAccess:
                     var memberExpression = (MemberExpression)expression;
-                    return GetName(memberExpression.Expression) + memberExpression.Member.Name;
+
+                    if (memberExpression.Expression.NodeType == ExpressionType.MemberAccess)
+                    {
+                        return GetName(memberExpression.Expression) + memberExpression.Member.Name;
+                    }
+                    else
+                    {
+                        return memberExpression.Member.Name;
+                    }
                     break;
                 case ExpressionType.Parameter:
+                    return ((ParameterExpression)expression).Name;
+                    break;
                 case ExpressionType.Constant:
                     return "";
                     break;

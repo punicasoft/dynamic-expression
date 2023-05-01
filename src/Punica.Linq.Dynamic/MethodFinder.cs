@@ -275,29 +275,38 @@ namespace Punica.Linq.Dynamic
                         //set input types and skip last output types
                         for (var i = 0; i < typeArguments.Length - 1; i++)
                         {
-                            if (map.ContainsKey(typeArguments[i].Name))
+                            if (typeArguments[i].IsOpenGeneric())
                             {
-                                parTypes.Add(map[typeArguments[i].Name]);
-                                order[1].Add(index);
-                            }
-                            else
-                            {
-                                var genericArguments = typeArguments[i].GetGenericArguments();
-
-                                foreach (var genericArgument in genericArguments)
+                                if (map.ContainsKey(typeArguments[i].Name)) // Func<Tsource>
                                 {
-                                    if (map.ContainsKey(genericArgument.Name))
-                                    {
-                                        var i1 = i;
-                                        parTypes.Add(args => typeArguments[i1].GetGenericTypeDefinition().MakeGenericType(map[genericArgument.Name](args)));
+                                    parTypes.Add(map[typeArguments[i].Name]);
+                                    order[1].Add(index);
+                                }
+                                else
+                                {
+                                    var genericArguments = typeArguments[i].GetGenericArguments();
 
-                                        if (!order[1].Contains(index))
+                                    foreach (var genericArgument in genericArguments)
+                                    {
+                                        if (map.ContainsKey(genericArgument.Name))
                                         {
-                                            order[1].Add(index);
+                                            var i1 = i;
+                                            parTypes.Add(args => typeArguments[i1].GetGenericTypeDefinition().MakeGenericType(map[genericArgument.Name](args)));
+
+                                            if (!order[1].Contains(index))
+                                            {
+                                                order[1].Add(index);
+                                            }
                                         }
                                     }
                                 }
                             }
+                            else
+                            {
+                                var i1 = i;
+                                parTypes.Add(args => typeArguments[i1]);
+                            }
+                           
                         }
 
                         lambdas[index] = args =>
