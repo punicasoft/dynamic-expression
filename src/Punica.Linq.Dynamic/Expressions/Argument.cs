@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
     public class Argument
     {

@@ -1,13 +1,12 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
     public class ParameterToken : IExpression
     {
         private Expression? _value;
         private bool _evaluated;
-        private IExpression? _expression;
         private readonly string? _name;
 
         private Type? _type;
@@ -27,13 +26,6 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public ParameterToken(string name)
         {
-            _name =  name;
-            _evaluated = false;
-        }
-
-        public ParameterToken(IExpression expression, string name)
-        {
-            _expression = expression;
             _name = name;
             _evaluated = false;
         }
@@ -41,7 +33,7 @@ namespace Punica.Linq.Dynamic.Tokens
         //Remove SetExpression if this works
         internal void SetType(Type type)
         {
-            if (!_evaluated) 
+            if (!_evaluated)
             {
                 _type = type;//TODO handle invalid scenarios
             }
@@ -56,23 +48,13 @@ namespace Punica.Linq.Dynamic.Tokens
         {
             if (!_evaluated)
             {
-                //var memberExpression = _expression!.Evaluate();
-
-                //if (memberExpression.Type.IsCollection(out var type))
-                //{
-                //    _value = Expression.Parameter(type, _name);
-                //}
-                //else
-                //{
-                //    _value = Expression.Parameter(memberExpression.Type, _name);
-                //}
                 _value = Expression.Parameter(_type!, _name);
                 _evaluated = true;
             }
 
-            return _value;
+            return _value!;
         }
-        
+
         public TokenType TokenType => TokenType.Value;
         public ExpressionType ExpressionType => ExpressionType.Parameter;
     }

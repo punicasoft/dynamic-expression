@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Linq.Expressions;
-using Punica.Linq.Dynamic.abstractions;
-using Punica.Linq.Dynamic.Tokens;
+using Punica.Linq.Dynamic.Expressions;
 
 namespace Punica.Linq.Dynamic
 {
@@ -97,11 +96,6 @@ namespace Punica.Linq.Dynamic
             }
 
             return Array.Empty<ParameterToken>();
-        }
-
-        public void AddParameter(IExpression expression)
-        {
-            AddParameter(new ParameterToken(expression, _arg + _depth));
         }
 
         public ParameterToken AddParameter(ParameterToken parameter)

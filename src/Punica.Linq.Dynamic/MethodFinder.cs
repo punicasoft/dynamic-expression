@@ -1,63 +1,310 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Punica.Extensions;
-using Punica.Linq.Dynamic.Tokens;
+using Punica.Linq.Dynamic.Expressions;
 
 namespace Punica.Linq.Dynamic
 {
     public class MethodFinder
     {
         private static readonly Dictionary<string, List<MethodMetaInfo>> _methods = new Dictionary<string, List<MethodMetaInfo>>();
+        private static readonly HashSet<string> _refrences = new HashSet<string>();
+        private static readonly HashSet<string> _types = new HashSet<string>();
+        private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> _typeMapCache = new ConcurrentDictionary<string, IReadOnlyList<string>>();
 
         public static MethodFinder Instance { get; } = new MethodFinder();
 
         private MethodFinder()
         {
-            InitializeMethodInfo(typeof(Enumerable));
+            var list = new List<string>()
+            {
+                "System.Collections.Generic.IEnumerable`1{0}",
+                "System.Collections.Generic.IEnumerable`1",
+                "System.Collections.IEnumerable"
+            };
+
+            var list2 = new List<string>()
+            {
+                "System.Collections.IEnumerable"
+            };
+
+            var list3 = new List<string>()
+            {
+                "System.Linq.IQueryable`1{0}",
+                "System.Linq.IQueryable`1",
+                "System.Linq.IQueryable",
+                "System.Collections.Generic.IEnumerable`1{0}",
+                "System.Collections.Generic.IEnumerable`1",
+                "System.Collections.IEnumerable"
+            };
+
+            _typeMapCache.TryAdd("System.Array", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.List`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.IList`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.ICollection`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.IEnumerable`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.IOrderedEnumerable`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.IReadOnlyList`1", list);
+            _typeMapCache.TryAdd("System.Collections.Generic.IReadOnlyCollection`1", list);
+            _typeMapCache.TryAdd("System.Linq.IQueryable`1", list3);
+            _typeMapCache.TryAdd("System.Linq.EnumerableQuery`1", list3);
+            _typeMapCache.TryAdd("System.Linq.IOrderedQueryable`1", list3);
+            _typeMapCache.TryAdd("Microsoft.EntityFrameworkCore.DbSet`1", list3);
+
+
+            _typeMapCache.TryAdd("System.Collections.IList", list2);
+            _typeMapCache.TryAdd("System.Collections.ICollection", list2);
+            _typeMapCache.TryAdd("System.Collections.IEnumerable", list2);
+
+            InitializeMethodInfo(typeof(Enumerable), BindingFlags.Public | BindingFlags.Static);
+            InitializeMethodInfo(typeof(Queryable), BindingFlags.Public | BindingFlags.Static);
         }
 
 
-        public void InitializeMethodInfo(Type type)
+        public void InitializeMethodInfo(Type type, BindingFlags flags)
         {
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
-            foreach (var method in methods)
+            var fullName = type.FullName;
+
+            if (fullName != null && !_refrences.Contains(fullName))
             {
-                var isExtensionMethod = method.IsDefined(typeof(ExtensionAttribute));
+                _refrences.Add(fullName);
 
-                var argCount = method.GetParameters().Length;
+                var methods = type.GetMethods(flags);
 
-                if (isExtensionMethod)
+                foreach (var method in methods)
                 {
-                    argCount--;
+                    var isExtensionMethod = method.IsDefined(typeof(ExtensionAttribute));
+
+                    var parameters = method.GetParameters();
+
+                    var argCount = parameters.Length;
+
+                    if (isExtensionMethod)
+                    {
+                        argCount--;
+                        var parameterType1 = parameters[0].ParameterType;
+
+                        if (parameterType1.IsGenericType)
+                        {
+                            fullName = parameterType1.GetGenericTypeDefinition().FullName;
+
+                            if (fullName == null)
+                            {
+                                continue;
+                            }
+
+                            _types.Add(fullName);
+
+                            if (!parameterType1.IsOpenGeneric())
+                            {
+                                var sb = new StringBuilder();
+                                sb.Append(fullName);
+                                sb.Append("[");
+
+                                var arguments = parameterType1.GenericTypeArguments;
+
+                                foreach (var argument in arguments)
+                                {
+                                    var underlyingType = Nullable.GetUnderlyingType(argument);
+                                    if (underlyingType != null)
+                                    {
+                                        sb.Append(underlyingType.FullName);
+                                        sb.Append("?,");
+                                    }
+                                    else
+                                    {
+                                        sb.Append(argument.FullName);
+                                        sb.Append(",");
+                                    }
+
+                                }
+
+                                sb.Remove(sb.Length - 1, 1);
+                                sb.Append("]");
+                                fullName = sb.ToString();
+                            }
+
+                        }
+                        else
+                        {
+                            fullName = parameterType1.FullName;
+
+                            if (fullName == null)
+                            {
+                                continue;
+                            }
+
+                            _types.Add(fullName);
+                        }
+
+                    }
+
+                    var key = $"{fullName}.{method.Name}.{argCount}";
+
+                    if (!_methods.ContainsKey(key))
+                    {
+                        _methods.Add(key, new List<MethodMetaInfo>() { new MethodMetaInfo(method) });
+                    }
+                    else
+                    {
+                        _methods[key].Add(new MethodMetaInfo(method));
+                    }
                 }
+            }
+        }
 
-                var key = $"{type.FullName}.{method.Name}.{argCount}";
-                if (!_methods.ContainsKey(key))
+        public IEnumerable<Type> GetImplementedTypes(Type? type)
+        {
+            var types = new List<Type>();
+            if (type != null && type.IsInterface)
+            {
+                types.Add(type);
+                AddInterfaces(types, type);
+            }
+            else
+            {
+                while (type != null)
                 {
-                    _methods.Add(key, new List<MethodMetaInfo>() { new MethodMetaInfo(method) });
-                }
-                else
-                {
-                    _methods[key].Add(new MethodMetaInfo(method));
+                    types.Add(type);
+                    AddInterfaces(types, type);
+                    type = type.BaseType;
                 }
             }
 
+            return types;
         }
 
-        public void Print()
+        public void AddInterfaces(List<Type> types, Type type)
         {
-            foreach (var key in _methods.Keys)
+            foreach (var iType in type.GetInterfaces())
             {
-                Console.WriteLine(key + " " + _methods[key].Count);
+                types.Add(iType);
+                AddInterfaces(types, iType);
             }
         }
+
+
+        private IReadOnlyList<string> GetPossibleMatchingNames(Type type)
+        {
+            string key;
+
+            if (type.IsGenericType)
+                key = type.GetGenericTypeDefinition().FullName!;
+            else
+                key = type.IsArray ? "System.Array" : type.FullName!;
+
+
+            if (_typeMapCache.ContainsKey(key))
+            {
+                return GetNames(type, _typeMapCache[key]);
+            }
+
+            throw new Exception("test"); //TODO: remove if everything works, added to see cache miss happen or not
+
+            List<string> generalList = new List<string>();
+
+            var distinct = GetImplementedTypes(type).Distinct();
+
+            foreach (var implementedType in distinct)
+            {
+                var baseName = implementedType.IsGenericType ? implementedType.GetGenericTypeDefinition().FullName! : implementedType.FullName!;
+
+                if (implementedType.IsGenericType)
+                {
+                    if (_types.Contains(baseName))
+                    {
+                        generalList.Add(baseName + "{0}");
+                        generalList.Add(baseName);
+                    }
+                }
+                else if (_types.Contains(baseName))
+                {
+                    generalList.Add(baseName);
+                }
+            }
+
+            _typeMapCache[key] = generalList;
+
+
+            return GetNames(type, generalList);
+        }
+
+        IReadOnlyList<string> GetNames(Type type, IReadOnlyList<string> generalNames)
+        {
+            if (type.IsGenericType)
+            {
+                var arguments = type.GenericTypeArguments;
+                var sb = new StringBuilder();
+                sb.Append("[");
+
+                foreach (var argument in arguments)
+                {
+                    var underlyingType = Nullable.GetUnderlyingType(argument);
+                    if (underlyingType != null)
+                    {
+                        sb.Append(underlyingType.FullName);
+                        sb.Append("?,");
+                    }
+                    else
+                    {
+                        sb.Append(argument.FullName);
+                        sb.Append(",");
+                    }
+                }
+
+                sb.Remove(sb.Length - 1, 1);
+                sb.Append("]");
+                var typeName = sb.ToString();
+
+                var list = new List<string>();
+
+                foreach (var name in generalNames)
+                {
+                    list.Add(string.Format(name, typeName));
+                }
+
+                return list;
+            }
+
+            if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                var typeName = "[" + elementType!.FullName + "]";
+
+                var underlyingType = Nullable.GetUnderlyingType(elementType);
+
+                if (underlyingType != null)
+                {
+                    typeName = "[" + underlyingType.FullName + "?]";
+                }
+
+                var list = new List<string>();
+
+                foreach (var name in generalNames)
+                {
+                    list.Add(string.Format(name, typeName));
+                }
+
+                return list;
+            }
+
+
+            return generalNames;
+        }
+
 
         public MethodMetaInfo GetMethod(Type type, string methodName, List<Argument> args)
         {
-            var key = $"{typeof(Enumerable).FullName}.{methodName}.{args.Count}";
-            if (type.IsCollection())
+
+            var names = GetPossibleMatchingNames(type);
+
+            foreach (var name in names)
             {
+                var key = $"{name}.{methodName}.{args.Count}";
+
                 if (_methods.ContainsKey(key))
                 {
                     var methodInfos = _methods[key];
@@ -66,24 +313,22 @@ namespace Punica.Linq.Dynamic
                     {
                         return methodInfos[0];
                     }
-                    else
-                    {
-                        var methodInfo = FindBestMethod(methodInfos, args, type);
 
-                        if (methodInfo != null)
-                        {
-                            return methodInfo;
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"Method {methodName} with {args.Count} arguments not found in {type.FullName}");
-                        }
+                    var methodInfo = FindBestMethod(methodInfos, args, type);
+
+                    if (methodInfo != null)
+                    {
+                        return methodInfo;
                     }
+
+                    throw new ArgumentException($"Method {methodName} with {args.Count} arguments not found in {type.FullName}");
                 }
             }
 
             throw new ArgumentException($"Method {methodName} with {args.Count} arguments not found in {type.FullName} 2");
         }
+
+
 
         public MethodMetaInfo? FindBestMethod(List<MethodMetaInfo> metaInfos, List<Argument> args, Type type)
         {
@@ -115,26 +360,35 @@ namespace Punica.Linq.Dynamic
 
                 for (int i = 0; i < args.Count; i++, j++)
                 {
-                    var arg = args[i].GetArgumentData();
-                    if (arg.IsFunction)
+                    var argument = args[i];
+                    var argumentData = argument.GetArgumentData();
+                    var parameterType = parameters[j].ParameterType;
+
+                    if (argumentData.IsFunction)
                     {
-                        if (parameters[j].ParameterType.GetGenericTypeDefinition() != arg.FuncType)
+                        if (parameterType.GetGenericTypeDefinition() == typeof(Expression<>))
+                        {
+                            //Extract delegate inside of Expression<Func<>>
+                            parameterType = parameterType.GetGenericArguments()[0];
+                        }
+
+                        if (parameterType.GetGenericTypeDefinition() != argumentData.FuncType)
                         {
                             match = false;
                             break;
                         }
-
+                        
                         //hack not a good one. Try to evaluate first function if it is input is source
                         if (argMeta.EvalOrder[1].Contains(j) && argMeta.EvalOrder[0].Count == 1 && argMeta.EvalOrder[0].Contains(0))
                         {
                             var types = argMeta.LambdasTypes(new Expression[] { Expression.Parameter(type) }, 0);
-                            args[i].SetParameterType(types[0], 0);
+                            argument.SetParameterType(types[0], 0);
 
-                            arg = args[i].GetArgumentData();
+                            argumentData = argument.GetArgumentData();
 
-                            if (!parameters[j].ParameterType.GetGenericArguments().Last().IsGenericParameter)
+                            if (!parameterType.GetGenericArguments().Last().IsGenericParameter)
                             {
-                                if (parameters[j].ParameterType.GetGenericArguments().Last() == arg.Type)
+                                if (parameterType.GetGenericArguments().Last() == argumentData.Type)
                                 {
                                     bestMatches[j] = true;
                                 }
@@ -150,13 +404,13 @@ namespace Punica.Linq.Dynamic
                     }
                     else
                     {
-                        if (parameters[j].ParameterType == arg.Type)
+                        if (parameterType == argumentData.Type)
                         {
                             bestMatches[j] = true;
                             continue;
                         }
 
-                        if (!parameters[j].ParameterType.IsAssignableFrom(arg.Type))
+                        if (!parameterType.IsAssignableFrom(argumentData.Type))
                         {
                             match = false;
                             break;
@@ -223,10 +477,9 @@ namespace Punica.Linq.Dynamic
             var map = new Dictionary<string, Func<Expression[], Type>>();
             var parameters = methodInfo.GetParameters();
 
-            var order = new Dictionary<int, List<int>>();
-            order[0] = new List<int>();
-            order[1] = new List<int>();
-            order[2] = new List<int>();
+            var list0 = new List<int>();
+            var list1 = new List<int>();
+            var list2 = new List<int>();
 
             var inputs = new Dictionary<int, Func<Expression[], ParameterExpression[], Expression>>();
             var lambdas = new Dictionary<int, Func<Expression[], Type[]>>();
@@ -238,16 +491,23 @@ namespace Punica.Linq.Dynamic
                 var arg = parameters[index];
                 if (arg.ParameterType.IsGenericType)
                 {
-                    if (arg.ParameterType.Name.StartsWith("Func", StringComparison.Ordinal))
+                    var parameterType = arg.ParameterType;
+
+                    if (parameterType.GetGenericTypeDefinition() == typeof(Expression<>))
                     {
-                        var typeArguments = arg.ParameterType.GetGenericArguments();
+                        parameterType = parameterType.GetGenericArguments()[0];
+                    }
+
+                    if (parameterType.Name.StartsWith("Func", StringComparison.Ordinal))
+                    {
+                        var typeArguments = parameterType.GetGenericArguments();
                         var last = typeArguments.Last();
 
                         if (genericParametersNames.Contains(last.Name) && !map.ContainsKey(last.Name))
                         {
                             var index1 = index;
-                            map[last.Name] = args => args[index1].Type;  
-                            order[2].Add(index);
+                            map[last.Name] = args => args[index1].Type;
+                            list2.Add(index);
                         }
 
                         var parTypes = new List<Func<Expression[], Type>>();
@@ -255,27 +515,28 @@ namespace Punica.Linq.Dynamic
                         //set input types and skip last output types
                         for (var i = 0; i < typeArguments.Length - 1; i++)
                         {
-                            if (typeArguments[i].IsOpenGeneric())
+                            var typeArgument = typeArguments[i];
+
+                            if (typeArgument.IsOpenGeneric())
                             {
-                                if (map.ContainsKey(typeArguments[i].Name)) // Func<Tsource>
+                                if (map.ContainsKey(typeArgument.Name)) // Func<Tsource>
                                 {
-                                    parTypes.Add(map[typeArguments[i].Name]);
-                                    order[1].Add(index);
+                                    parTypes.Add(map[typeArgument.Name]);
+                                    list1.Add(index);
                                 }
                                 else
                                 {
-                                    var genericArguments = typeArguments[i].GetGenericArguments();
+                                    var genericArguments = typeArgument.GetGenericArguments();
 
                                     foreach (var genericArgument in genericArguments)
                                     {
                                         if (map.ContainsKey(genericArgument.Name))
                                         {
-                                            var i1 = i;
-                                            parTypes.Add(args => typeArguments[i1].GetGenericTypeDefinition().MakeGenericType(map[genericArgument.Name](args)));
+                                            parTypes.Add(args => typeArgument.GetGenericTypeDefinition().MakeGenericType(map[genericArgument.Name](args)));
 
-                                            if (!order[1].Contains(index))
+                                            if (!list1.Contains(index))
                                             {
-                                                order[1].Add(index);
+                                                list1.Add(index);
                                             }
                                         }
                                     }
@@ -283,10 +544,8 @@ namespace Punica.Linq.Dynamic
                             }
                             else
                             {
-                                var i1 = i;
-                                parTypes.Add(args => typeArguments[i1]);
+                                parTypes.Add(args => typeArgument);
                             }
-                           
                         }
 
                         lambdas[index] = args =>
@@ -307,25 +566,26 @@ namespace Punica.Linq.Dynamic
                             var ins = lambdas[index2](args);
                             var typeArgs = new Type[ins.Length + 1];
                             Array.Copy(ins, typeArgs, ins.Length);
-                            typeArgs[ins.Length] = args[index2].Type;
+                            var body = args[index2];
+                            typeArgs[ins.Length] = body.Type;
 
                             return Expression.Lambda(
-                                    arg.ParameterType.GetGenericTypeDefinition().MakeGenericType(typeArgs),
-                                    args[index2],
+                                    parameterType.GetGenericTypeDefinition().MakeGenericType(typeArgs),
+                                    body,
                                     paras);
                         };
                     }
                     else
                     {
-                        if (genericParametersNames.Contains(arg.ParameterType.Name) && !map.ContainsKey(arg.ParameterType.Name))
+                        if (genericParametersNames.Contains(parameterType.Name) && !map.ContainsKey(parameterType.Name))
                         {
                             var index1 = index;
-                            map[arg.ParameterType.Name] = args => args[index1].Type;
-                            order[0].Add(index);
+                            map[parameterType.Name] = args => args[index1].Type;
+                            list0.Add(index);
                         }
                         else
                         {
-                            var genericArguments = arg.ParameterType.GetGenericArguments();
+                            var genericArguments = parameterType.GetGenericArguments();
 
                             for (var i = 0; i < genericArguments.Length; i++)
                             {
@@ -340,12 +600,9 @@ namespace Punica.Linq.Dynamic
                                         map[argument.Name] =
                                             args =>
                                             {
-                                                if (args[index1].Type.IsArray)
-                                                {
-                                                    return args[index1].Type.GetElementType()!;
-                                                }
+                                                var type = args[index1].Type;
 
-                                                return args[index1].Type.GetGenericArguments()[i1];
+                                                return type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[i1];
                                             };
                                     }
                                     else
@@ -355,9 +612,9 @@ namespace Punica.Linq.Dynamic
                                     }
 
 
-                                    if (!order[0].Contains(index))
+                                    if (!list0.Contains(index))
                                     {
-                                        order[0].Add(index);
+                                        list0.Add(index);
                                     }
                                 }
                             }
@@ -374,7 +631,7 @@ namespace Punica.Linq.Dynamic
                 }
             }
 
-            return new SignatureResolver(methodInfo, map.Values.ToArray(), lambdas.Values.ToArray(), inputs.Values.ToArray(), lambdas.Keys.ToArray(), order);
+            return new SignatureResolver(methodInfo, map.Values.ToArray(), lambdas.Values.ToArray(), inputs.Values.ToArray(), lambdas.Keys.ToArray(), new[]{ list0, list1, list2 });
         }
 
     }
@@ -386,7 +643,7 @@ namespace Punica.Linq.Dynamic
         private readonly Func<Expression[], Type[]>[] _lambdasInputTypesResolvers;
         private readonly Func<Expression[], ParameterExpression[], Expression>[] _methodArgumentResolvers;
         private readonly int[] _funcIndex;
-        public Dictionary<int, List<int>> EvalOrder { get; private set; }
+        public List<int>[] EvalOrder { get; private set; }
 
         public int FuncCount => _lambdasInputTypesResolvers.Length;
 
@@ -403,7 +660,7 @@ namespace Punica.Linq.Dynamic
         public SignatureResolver(MethodInfo methodInfo,
             Func<Expression[], Type>[] genericArgumentsResolvers,
             Func<Expression[], Type[]>[] lambdasInputTypesResolvers,
-            Func<Expression[], ParameterExpression[], Expression>[] methodArgumentResolvers, int[] funcIndex, Dictionary<int, List<int>> evalOrder)
+            Func<Expression[], ParameterExpression[], Expression>[] methodArgumentResolvers, int[] funcIndex, List<int>[] evalOrder)
         {
             _methodInfo = methodInfo;
             _genericArgumentsResolvers = genericArgumentsResolvers;
@@ -416,10 +673,10 @@ namespace Punica.Linq.Dynamic
         public MethodCallExpression Resolve(Expression[] args, Expression[] finalArgs)
         {
             if (_methodInfo.IsGenericMethodDefinition)
-            { 
-               var methodInfo = _methodInfo.MakeGenericMethod(GetGenericTypeArguments(args));
+            {
+                var methodInfo = _methodInfo.MakeGenericMethod(GetGenericTypeArguments(args));
 
-               return Expression.Call(methodInfo, finalArgs);
+                return Expression.Call(methodInfo, finalArgs);
             }
 
             return Expression.Call(_methodInfo, finalArgs);
@@ -473,6 +730,6 @@ namespace Punica.Linq.Dynamic
             MethodInfo = methodInfo;
             IsExtension = methodInfo.IsDefined(typeof(ExtensionAttribute), false);
         }
-        
+
     }
 }

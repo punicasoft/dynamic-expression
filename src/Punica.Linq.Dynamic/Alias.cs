@@ -1,4 +1,4 @@
-﻿using Punica.Linq.Dynamic.abstractions;
+﻿using Punica.Linq.Dynamic.Abstractions;
 
 namespace Punica.Linq.Dynamic
 {

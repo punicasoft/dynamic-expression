@@ -1,13 +1,12 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
     public class MethodToken : IExpression
     {
         public string MethodName { get; }
         public IExpression MemberExpression { get; }
-        private IExpression? Parameter { get; }
         public List<Argument> Arguments { get; }
         public TokenType TokenType => TokenType.Member;
         public ExpressionType ExpressionType => ExpressionType.Call;
@@ -15,12 +14,9 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public MethodToken(string methodName, IExpression memberExpression)
         {
-            // _depth = depth;
             MethodName = methodName;
             MemberExpression = memberExpression;
             Arguments = new List<Argument>();
-            //Parameter = parameter;
-            // Parameter = new ParameterToken(memberExpression, "arg" + _depth);
         }
 
         public void AddToken(Argument token)
