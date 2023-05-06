@@ -10,10 +10,10 @@ namespace Punica.Linq.Dynamic
 {
     public class MethodFinder
     {
-        private static readonly Dictionary<string, List<MethodMetaInfo>> _methods = new Dictionary<string, List<MethodMetaInfo>>();
-        private static readonly HashSet<string> _refrences = new HashSet<string>();
-        private static readonly HashSet<string> _types = new HashSet<string>();
-        private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> _typeMapCache = new ConcurrentDictionary<string, IReadOnlyList<string>>();
+        private static readonly Dictionary<string, List<MethodMetaInfo>> Methods = new Dictionary<string, List<MethodMetaInfo>>();
+        private static readonly HashSet<string> Refrences = new HashSet<string>();
+        private static readonly HashSet<string> Types = new HashSet<string>();
+        private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> TypeMapCache = new ConcurrentDictionary<string, IReadOnlyList<string>>();
 
         public static MethodFinder Instance { get; } = new MethodFinder();
 
@@ -41,26 +41,29 @@ namespace Punica.Linq.Dynamic
                 "System.Collections.IEnumerable"
             };
 
-            _typeMapCache.TryAdd("System.Array", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.List`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.IList`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.ICollection`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.IEnumerable`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.IOrderedEnumerable`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.IReadOnlyList`1", list);
-            _typeMapCache.TryAdd("System.Collections.Generic.IReadOnlyCollection`1", list);
-            _typeMapCache.TryAdd("System.Linq.IQueryable`1", list3);
-            _typeMapCache.TryAdd("System.Linq.EnumerableQuery`1", list3);
-            _typeMapCache.TryAdd("System.Linq.IOrderedQueryable`1", list3);
-            _typeMapCache.TryAdd("Microsoft.EntityFrameworkCore.DbSet`1", list3);
+            TypeMapCache.TryAdd("System.Array", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.List`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.IList`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.ICollection`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.IEnumerable`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.IOrderedEnumerable`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.IReadOnlyList`1", list);
+            TypeMapCache.TryAdd("System.Collections.Generic.IReadOnlyCollection`1", list);
+            TypeMapCache.TryAdd("System.Linq.IQueryable`1", list3);
+            TypeMapCache.TryAdd("System.Linq.EnumerableQuery`1", list3);
+            TypeMapCache.TryAdd("System.Linq.IOrderedQueryable`1", list3);
+            TypeMapCache.TryAdd("Microsoft.EntityFrameworkCore.DbSet`1", list3);
+
+            TypeMapCache.TryAdd("System.String", new List<string>(1){ "System.String" });
 
 
-            _typeMapCache.TryAdd("System.Collections.IList", list2);
-            _typeMapCache.TryAdd("System.Collections.ICollection", list2);
-            _typeMapCache.TryAdd("System.Collections.IEnumerable", list2);
+            TypeMapCache.TryAdd("System.Collections.IList", list2);
+            TypeMapCache.TryAdd("System.Collections.ICollection", list2);
+            TypeMapCache.TryAdd("System.Collections.IEnumerable", list2);
 
             InitializeMethodInfo(typeof(Enumerable), BindingFlags.Public | BindingFlags.Static);
             InitializeMethodInfo(typeof(Queryable), BindingFlags.Public | BindingFlags.Static);
+            InitializeMethodInfo(typeof(string), BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
         }
 
 
@@ -68,9 +71,9 @@ namespace Punica.Linq.Dynamic
         {
             var fullName = type.FullName;
 
-            if (fullName != null && !_refrences.Contains(fullName))
+            if (fullName != null && !Refrences.Contains(fullName))
             {
-                _refrences.Add(fullName);
+                Refrences.Add(fullName);
 
                 var methods = type.GetMethods(flags);
 
@@ -96,7 +99,7 @@ namespace Punica.Linq.Dynamic
                                 continue;
                             }
 
-                            _types.Add(fullName);
+                            Types.Add(fullName);
 
                             if (!parameterType1.IsOpenGeneric())
                             {
@@ -137,20 +140,24 @@ namespace Punica.Linq.Dynamic
                                 continue;
                             }
 
-                            _types.Add(fullName);
+                            Types.Add(fullName);
                         }
 
+                    }
+                    else if (method.IsStatic)
+                    {
+                        continue; // skip static methods TODO: add support for static methods
                     }
 
                     var key = $"{fullName}.{method.Name}.{argCount}";
 
-                    if (!_methods.ContainsKey(key))
+                    if (!Methods.ContainsKey(key))
                     {
-                        _methods.Add(key, new List<MethodMetaInfo>() { new MethodMetaInfo(method) });
+                        Methods.Add(key, new List<MethodMetaInfo>() { new MethodMetaInfo(method) });
                     }
                     else
                     {
-                        _methods[key].Add(new MethodMetaInfo(method));
+                        Methods[key].Add(new MethodMetaInfo(method));
                     }
                 }
             }
@@ -197,9 +204,9 @@ namespace Punica.Linq.Dynamic
                 key = type.IsArray ? "System.Array" : type.FullName!;
 
 
-            if (_typeMapCache.ContainsKey(key))
+            if (TypeMapCache.ContainsKey(key))
             {
-                return GetNames(type, _typeMapCache[key]);
+                return GetNames(type, TypeMapCache[key]);
             }
 
             throw new Exception("test"); //TODO: remove if everything works, added to see cache miss happen or not
@@ -214,19 +221,19 @@ namespace Punica.Linq.Dynamic
 
                 if (implementedType.IsGenericType)
                 {
-                    if (_types.Contains(baseName))
+                    if (Types.Contains(baseName))
                     {
                         generalList.Add(baseName + "{0}");
                         generalList.Add(baseName);
                     }
                 }
-                else if (_types.Contains(baseName))
+                else if (Types.Contains(baseName))
                 {
                     generalList.Add(baseName);
                 }
             }
 
-            _typeMapCache[key] = generalList;
+            TypeMapCache[key] = generalList;
 
 
             return GetNames(type, generalList);
@@ -305,9 +312,9 @@ namespace Punica.Linq.Dynamic
             {
                 var key = $"{name}.{methodName}.{args.Count}";
 
-                if (_methods.ContainsKey(key))
+                if (Methods.ContainsKey(key))
                 {
-                    var methodInfos = _methods[key];
+                    var methodInfos = Methods[key];
 
                     if (methodInfos.Count == 1)
                     {
@@ -680,6 +687,18 @@ namespace Punica.Linq.Dynamic
             }
 
             return Expression.Call(_methodInfo, finalArgs);
+        }
+
+        public MethodCallExpression Resolve(Expression instance, Expression[] args, Expression[] finalArgs)
+        {
+            if (_methodInfo.IsGenericMethodDefinition)
+            {
+                var methodInfo = _methodInfo.MakeGenericMethod(GetGenericTypeArguments(args));
+
+                return Expression.Call(instance, methodInfo, finalArgs);
+            }
+
+            return Expression.Call(instance, _methodInfo, finalArgs);
         }
 
         public Type[] GetGenericTypeArguments(Expression[] args)

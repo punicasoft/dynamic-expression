@@ -94,18 +94,14 @@ namespace Punica.Linq.Dynamic.Tests
 
             var expression = "fruits.Contains(@apple, @prodc)";
 
-            var context = new TokenContext(expression)
+            var context = new Evaluator()
                 .AddIdentifier("apple", Expression.Constant(apple))
                 .AddIdentifier("prodc", Expression.Constant(prodc))
                 .AddParameter(Expression.Parameter(fruits.GetType(), "fruits"));
 
-            var rootToken = Tokenizer.Evaluate(context);
+            var func = context.Evaluate<Func<Product[], bool>>(expression);
 
-            var re = rootToken.Evaluate();
-            var resultExpression = (Expression<Func<Product[], bool>>)re;
-
-         
-            var actual = resultExpression.Compile()(fruits);
+            var actual = func(fruits);
             var expected = fruits.Contains(apple, prodc);
             Assert.Equal(expected, actual);
         }

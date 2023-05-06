@@ -7,12 +7,12 @@ namespace Punica.Linq.Dynamic
 {
     public class Tokenizer
     {
-        public static RootToken Evaluate(TokenContext context)
+        internal static RootToken Evaluate(Parser context)
         {
             return new RootToken(context.MethodContext.GetParameters(), Tokenize(context));
         }
 
-        public static List<IToken> Tokenize(TokenContext context)
+        internal static List<IToken> Tokenize(Parser context)
         {
             List<IToken> tokens = new List<IToken>();
 
@@ -30,7 +30,7 @@ namespace Punica.Linq.Dynamic
             return tokens;
         }
 
-        private static IToken? GetToken(TokenContext context)
+        private static IToken? GetToken(Parser context)
         {
             var token = context.CurrentToken;
 
@@ -110,7 +110,7 @@ namespace Punica.Linq.Dynamic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IExpression? ParseMemberAccessExpression(TokenContext context, IExpression expression)
+        private static IExpression? ParseMemberAccessExpression(Parser context, IExpression expression)
         {
             while (context.CurrentToken.Id is TokenId.Dot)
             {
@@ -141,7 +141,7 @@ namespace Punica.Linq.Dynamic
 
         //var expressionString = "Person.Select(p => new { p.Name, Age = DateTime.Now.Year - p.BirthYear }).Where(x => x.Age > 30)";
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static MethodToken ParseMethodCallExpression(TokenContext context, IExpression targetExpression, Token methodToken)
+        private static MethodToken ParseMethodCallExpression(Parser context, IExpression targetExpression, Token methodToken)
         {
             context.MethodContext.NextDepth();
             var method = new MethodToken(methodToken.Text, targetExpression);
@@ -223,7 +223,7 @@ namespace Punica.Linq.Dynamic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static NewToken ParseNewCallExpression(TokenContext context, Token methodToken)
+        private static NewToken ParseNewCallExpression(Parser context, Token methodToken)
         {
             var newToken = new NewToken();
 
@@ -274,7 +274,7 @@ namespace Punica.Linq.Dynamic
 
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static IExpression ParseVariableExpression(TokenContext context, Token token)
+        private static IExpression ParseVariableExpression(Parser context, Token token)
         {
             if (token.Id == TokenId.Variable)
             {

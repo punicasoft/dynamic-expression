@@ -10,28 +10,26 @@ namespace Punica.Linq.Dynamic.Performance.Tests
         {
             string stringExp = "Select( new { FirstName , Children.Select(new {Name , Gender}).ToList() as 'Kids'} )";
 
-            var context = new TokenContext(stringExp);
-            context.AddStartParameter(typeof(IQueryable<Person>));
-            var rootToken = Tokenizer.Evaluate(context);
-            rootToken.Evaluate();
+            var expression = new Evaluator()
+                .AddStartParameter(typeof(IQueryable<Person>))
+                .Parse(stringExp);
         }
 
         [Benchmark]
         public void Select_With_New_Expression()
         {
             string stringExp = "Select( new { FirstName , LastName as 'Kids'} )";
-            var context = new TokenContext(stringExp);
-            context.AddStartParameter(typeof(IQueryable<Person>));
-            var rootToken = Tokenizer.Evaluate(context);
-            rootToken.Evaluate();
+            var expression = new Evaluator()
+                .AddStartParameter(typeof(IQueryable<Person>))
+                .Parse(stringExp);
         }
 
         [Benchmark]
         public void Advanced_Boolean_Expression()
         {
             string stringExp = $"(5 > 3 && 2 <= 4 || 1 != 1 ) && 2 + 4 > 3 && 's' in 'cro' + 's'";
-            var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp));
-            rootToken.Evaluate();
+            var expression = new Evaluator()
+                .Parse(stringExp);
         }
 
         [Benchmark]
@@ -39,10 +37,9 @@ namespace Punica.Linq.Dynamic.Performance.Tests
         {
             string stringExp = $"Average(x)";
 
-            var context = new TokenContext(stringExp);
-            context.AddStartParameter(typeof(List<MyClass>));
-            var rootToken = Tokenizer.Evaluate(context);
-            rootToken.Evaluate();
+            var expression = new Evaluator()
+                .AddStartParameter(typeof(List<MyClass>))
+                .Parse(stringExp);
         }
 
         class MyClass

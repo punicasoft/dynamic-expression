@@ -16,15 +16,6 @@ namespace Punica.Linq.Dynamic
         {
         }
 
-        public MethodContext(ParameterExpression parameter) : this(new ParameterToken(parameter))
-        {
-        }
-
-        public MethodContext(ParameterToken parameter)
-        {
-            AddParameter(parameter);
-        }
-
         public ParameterToken? GetParameter(string name)
         {
             foreach (var key in _parameters.Keys)

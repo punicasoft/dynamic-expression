@@ -1,13 +1,18 @@
-﻿using System.Globalization;
-using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Abstractions;
+﻿using Punica.Linq.Dynamic.Abstractions;
 using Punica.Linq.Dynamic.Expressions;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Punica.Linq.Dynamic
 {
-    public class TokenContext
+    internal class Parser
     {
-        private readonly Dictionary<string, Identifier> _identifiers = new Dictionary<string, Identifier>();
+        private readonly Dictionary<string, Identifier> _identifiers;
         private static readonly Dictionary<string, Alias> Aliases = new()
         {
             { "eq", new Alias() { Id = TokenId.Equal, Token = TokenCache.Equal} },
@@ -50,42 +55,15 @@ namespace Punica.Linq.Dynamic
         public MethodContext MethodContext { get; }
 
 
-        public TokenContext(string txt, Expression? variablesInstance = null)
+        public Parser(string text, MethodContext methodContext, Expression? variablesInstance, Dictionary<string, Identifier> identifiers)
         {
-            _txt = txt;
+            _txt = text;
             VariablesInstance = variablesInstance;
+            _identifiers = identifiers;
+            MethodContext = methodContext;
             SetPosition(0);
-            MethodContext = new MethodContext();
             NextToken();
         }
-
-        public void AddStartParameter(Type type)
-        {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, "_arg")));
-        }
-
-        public void AddLambda(Type type, string name)
-        {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, name)));
-        }
-
-        public TokenContext AddParameter(ParameterExpression parameter)
-        {
-            MethodContext.AddParameter(new ParameterToken(parameter));
-            return this;
-        }
-
-        public TokenContext AddIdentifier(string name, Expression expression)
-        {
-            _identifiers.Add(name, new Identifier(name, expression));
-            return this;
-        }
-
-        public Identifier? GetIdentifier(string name)
-        {
-            return _identifiers.TryGetValue(name, out var identifier) ? identifier : null;
-        }
-
 
         public void SetPosition(int pos)
         {
@@ -115,7 +93,7 @@ namespace Punica.Linq.Dynamic
                 NextChar();
             }
 
-            // ReSharper disable once RedundantAssignment
+
             TokenId tokenId = TokenId.Unknown;
             IToken? token = null;
             string stringVal = string.Empty;
