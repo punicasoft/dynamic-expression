@@ -30,7 +30,7 @@ namespace Punica.Linq.Dynamic.Abstractions
         public static readonly IToken Colon = new ColonToken();
         public static readonly IToken True = new ValueToken(Expression.Constant(true));
         public static readonly IToken False = new ValueToken(Expression.Constant(false));
-        public static readonly IToken Null = new AddToken();
+        public static readonly IToken Null = new ValueToken(Expression.Constant(null));
         public static readonly IToken Identifier = new AddToken();
         public static readonly IToken BitwiseAnd = new BitwiseAndToken();
         public static readonly IToken BitwiseOr = new BitwiseOrToken();

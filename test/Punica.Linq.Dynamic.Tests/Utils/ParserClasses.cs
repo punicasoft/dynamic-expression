@@ -132,7 +132,8 @@
         public static Pet[] Pets ={
             new Pet { Name="Barley", Age=10 },
             new Pet { Name="Boots", Age=4 },
-            new Pet { Name="Whiskers", Age=6 }
+            new Pet { Name="Whiskers", Age=6 },
+            new Pet { Name="Brown", Age=1, Owner = new Person()}
         };
 
         public static string[] Fruits =
@@ -208,7 +209,7 @@
 
     public class Pet
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int Age { get; set; }
         public Person Owner { get; set; }
     }

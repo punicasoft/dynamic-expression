@@ -272,5 +272,23 @@ namespace Punica.Linq.Dynamic.Tests
             Assert.Equal(expected, actual);
         }
 
+
+        [Theory]
+        [InlineData("Brown")]
+        [InlineData(null)]
+        public void Evaluate_WhenExpressionIsNullCoalescing_ShouldWork(string name)
+        {
+            var pet = new Pet
+            {
+                Name = name
+            };
+
+            string stringExp = "Name ?? 'No Name'";
+            var resultExpression = GetExpression<Pet, string>(stringExp);
+            var actual = resultExpression.Compile()(pet);
+            var expected = pet.Name ?? "No Name";
+            Assert.Equal(expected, actual);
+        }
+
     }
 }

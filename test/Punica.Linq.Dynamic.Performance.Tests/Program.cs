@@ -22,6 +22,7 @@ Console.WriteLine("Hello, World!");
 //test.Average_Int_With_Predicate();
 
 
+
 Console.WriteLine(typeof(Enumerable).FullName);
 
 var targetType = typeof(List<string>);

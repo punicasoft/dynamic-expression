@@ -49,6 +49,16 @@ namespace Punica.Linq.Dynamic.Abstractions
                 return (Convert(left, typeof(byte)), Convert(right, typeof(byte)));
             }
 
+            if(left.Type == typeof(string) || left.Type == typeof(object))
+            {
+                return (Convert(left, right.Type), Convert(right, right.Type));
+            }
+
+            if (right.Type == typeof(string) || right.Type == typeof(object))
+            {
+                return (Convert(left, left.Type), Convert(right, left.Type));
+            }
+
             throw new InvalidOperationException("Cannot add types " + left.Type + " and " + right.Type);
 
         }

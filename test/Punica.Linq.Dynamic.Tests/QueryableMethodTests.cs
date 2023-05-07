@@ -16,6 +16,15 @@ namespace Punica.Linq.Dynamic.Tests
         }
 
         [Fact]
+        public void Evaluate_AllWithNullCheck_ShouldWork()
+        {
+            var expression = GetExpression<IQueryable<Pet>, bool>("All(Owner == null)");
+            var actual = expression.Compile()(Data.Pets.AsQueryable());
+            var expected = Data.Pets.AsQueryable().All(p => p.Owner == null);
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Evaluate_Any_ShouldWork()
         {
             var expression = GetExpression<IQueryable<Pet>, bool>("Any()");

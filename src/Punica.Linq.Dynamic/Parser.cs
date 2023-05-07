@@ -35,6 +35,7 @@ namespace Punica.Linq.Dynamic
 
             { "true",new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.True} },
             { "false", new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.False} },
+            { "null", new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.Null} },
         };
 
         private readonly string _txt;
