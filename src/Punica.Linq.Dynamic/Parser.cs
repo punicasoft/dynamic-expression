@@ -1,12 +1,6 @@
 ﻿using Punica.Linq.Dynamic.Abstractions;
-using Punica.Linq.Dynamic.Expressions;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Punica.Linq.Dynamic
 {
@@ -35,10 +29,12 @@ namespace Punica.Linq.Dynamic
 
             { "true",new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.True} },
             { "false", new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.False} },
-            { "null", new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.Null} },
+            { "null", new Alias() { Id =  TokenId.Null, Token = TokenCache.Null} },
+            { "new", new Alias() { Id =  TokenId.New,} },
         };
 
         private readonly string _txt;
+        private readonly HashSet<Type> _types;
         private int _pos;
 
         public bool CanRead => _pos < _txt.Length;
@@ -56,9 +52,10 @@ namespace Punica.Linq.Dynamic
         public MethodContext MethodContext { get; }
 
 
-        public Parser(string text, MethodContext methodContext, Expression? variablesInstance, Dictionary<string, Identifier> identifiers)
+        public Parser(string text, MethodContext methodContext, Expression? variablesInstance, HashSet<Type> types, Dictionary<string, Identifier> identifiers)
         {
             _txt = text;
+            _types = types;
             VariablesInstance = variablesInstance;
             _identifiers = identifiers;
             MethodContext = methodContext;
@@ -521,6 +518,25 @@ namespace Punica.Linq.Dynamic
             var stringVal = _txt.Substring(startIndex, CurrentPosition - startIndex);
 
             return new ValueToken(Expression.Constant(stringVal));
+        }
+
+        public Type FindType(string type)
+        {
+            var types = _types.Where(t => t.Name == type || t.FullName!.EndsWith(type)).ToList();
+
+            var count = types.Count();
+
+            if (count > 1)
+            {
+                throw new ArgumentException($"Ambiguous type {type}");
+            }
+
+            if (count == 0)
+            {
+                throw new ArgumentException($"Unsupported type {type}");
+            }
+
+            return types.First();
         }
     }
 }

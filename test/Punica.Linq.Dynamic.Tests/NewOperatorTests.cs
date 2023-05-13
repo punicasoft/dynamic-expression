@@ -115,5 +115,19 @@ namespace Punica.Linq.Dynamic.Tests
             var a = new { personFirstName = Data.Persons[0].FirstName, personLastName = Data.Persons[0].LastName }.ToString();
             Assert.Equal(a, actual.ToString());
         }
+
+
+        [Theory]
+        [InlineData("person => new Person{ person.FirstName , person.LastName }")]
+        [InlineData("person=>new Person{person.FirstName,person.LastName}")]
+        [InlineData("new Person{ person.FirstName , person.LastName }")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithLambda_ShouldWork(string stringExp)
+        {
+            var resultExpression = GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person"));
+            var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
+            var a = new Person(){ FirstName = Data.Persons[0].FirstName, LastName = Data.Persons[0].LastName }.ToString();
+            Assert.Equal(a, actual.ToString());
+        }
+
     }
 }

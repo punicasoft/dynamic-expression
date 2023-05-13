@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Reflection;
+using Punica.Extensions;
 using Punica.Linq.Dynamic.Abstractions;
 using Punica.Linq.Dynamic.Expressions;
 
@@ -9,8 +11,9 @@ namespace Punica.Linq.Dynamic
     public class Evaluator
     {
         public Dictionary<string, Identifier> Identifiers { get; } = new Dictionary<string, Identifier>();
+        private HashSet<Type> _types = new HashSet<Type>();
 
-        //TODO remove this. currently used for backward compatibility
+        //TODO try remove this.
         public MethodContext MethodContext { get; }
         public Expression? VariablesInstance { get; private set; }
 
@@ -22,28 +25,37 @@ namespace Punica.Linq.Dynamic
 
         public Evaluator AddStartParameter(Type type)
         {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, "_arg")));
-            return this;
+            return AddParameter(Expression.Parameter(type, "_arg"));
         }
 
-        public Evaluator AddLambda(Type type, string name)
+        public Evaluator AddParameter(Type type, string name)
         {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, name)));
-            return this;
+            return AddParameter(Expression.Parameter(type, name));
         }
 
-        public Evaluator AddParameter(ParameterExpression parameter)
+        public Evaluator AddParameter<T>(string? name)
         {
-            MethodContext.AddParameter(new ParameterToken(parameter));
-            return this;
+            return AddParameter(Expression.Parameter(typeof(T), name));
         }
 
-        public Evaluator AddIdentifier(string name, Expression expression)
+        public Evaluator AddParameter(ParameterExpression expression)
         {
-            Identifiers.Add(name, new Identifier(name, expression));
+            AddAllTypes(expression.Type);
+            MethodContext.AddParameter(new ParameterToken(expression));
             return this;
         }
 
+        public Evaluator AddVariable(string name, object? value)
+        {
+            Identifiers.Add(name, new Identifier(name, Expression.Constant(value)));
+            return this;
+        }
+
+        /// <summary>
+        /// Get variable through instance properties
+        /// </summary>
+        /// <param name="variablesInstance"></param>
+        /// <returns></returns>
         public Evaluator SetVariableInstance(Expression? variablesInstance)
         {
             VariablesInstance = variablesInstance;
@@ -62,7 +74,7 @@ namespace Punica.Linq.Dynamic
 
         public T Parse<T>(string text) where T : Expression
         {
-            var rootToken = Tokenizer.Evaluate(new Parser(text, MethodContext, VariablesInstance, Identifiers));
+            var rootToken = Tokenizer.Evaluate(new Parser(text, MethodContext, VariablesInstance, _types, Identifiers));
             return (T)rootToken.Evaluate();
         }
 
@@ -78,5 +90,44 @@ namespace Punica.Linq.Dynamic
             return expression.Compile();
         }
 
+
+        private void AddAllTypes(Type type)
+        {
+            if (type.IsCollection(out var elementType))
+            {
+                var add = _types.Add(elementType!);
+
+                if (!add)
+                {
+                    return;
+                }
+
+                var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(p => !p.PropertyType.IsPrimitive && !p.PropertyType.IsInterface );
+
+                foreach (var propertyInfo in propertyInfos)
+                {
+                    AddAllTypes(propertyInfo.PropertyType);
+                }
+            }
+            else
+            {
+                var add = _types.Add(type);
+
+                if (!add)
+                {
+                    return;
+                }
+
+
+                var propertyInfos = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(p => !p.PropertyType.IsPrimitive && !p.PropertyType.IsInterface );
+
+                foreach (var propertyInfo in propertyInfos)
+                {
+                    AddAllTypes(propertyInfo.PropertyType);
+                }
+            }
+        }
     }
 }

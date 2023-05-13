@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Punica.Linq.Dynamic.Abstractions;
 using Punica.Linq.Dynamic.Expressions;
 using Punica.Linq.Dynamic.Tokens;
@@ -44,11 +46,10 @@ namespace Punica.Linq.Dynamic
             // new { Name} 
             // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
             // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
+            // new Person {Name }
             if (token.Id == TokenId.Identifier || token.Id == TokenId.Variable)
             {
                 context.NextToken();
-                IToken? expr = null;
-
                 var nextToken = context.CurrentToken;
 
                 if (nextToken.Id == TokenId.Dot)
@@ -73,23 +74,6 @@ namespace Punica.Linq.Dynamic
 
                     return memberExpression;
                 }
-                else if (nextToken.Id == TokenId.LeftCurlyParen)
-                {
-                    if (token.Id == TokenId.Variable)
-                    {
-                        throw new Exception("Expected identifier before constructor call");
-                    }
-
-                    if (token.Text != "new")
-                    {
-                        throw new Exception("Expected new identifier before constructor call");
-                    }
-
-                    // Handle new call
-                    var methodCallExpression = ParseNewCallExpression(context, token);
-                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
-                    return memberExpression;
-                }
                 else if (nextToken.Id == TokenId.Lambda)
                 {
                     // Handle lambda expression
@@ -102,12 +86,51 @@ namespace Punica.Linq.Dynamic
                     return ParseVariableExpression(context, token);
                 }
             }
+            else if (token.Id == TokenId.New)
+            {
+                context.NextToken();
+                var nextToken = context.CurrentToken;
+
+                if (nextToken.Id == TokenId.LeftCurlyParen)
+                {
+
+                    // Handle new call
+                    var methodCallExpression = ParseNewCallExpression(context);
+                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                    return memberExpression;
+                }
+                else if (nextToken.Id == TokenId.Identifier)
+                {
+                    // Handle new call
+                    var typeName = ParseTypeName(context); //check until next token
+                    var type = context.FindType(typeName);
+
+                    if (context.CurrentToken.Id == TokenId.LeftCurlyParen)
+                    {
+                        var methodCallExpression = ParseNewCallExpression(context, type);
+                        var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                        return memberExpression;
+                    }
+                    else
+                    {
+                        throw new Exception("Expected curly bracket after new call with type");
+                    }
+                }
+                else
+                {
+                    throw new Exception("Expected curly bracket after new call");
+                }
+
+                throw new Exception("Expected curly bracket after new call");
+            }
             else
             {
                 context.NextToken();
                 return token.ParsedToken;
             }
         }
+
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static IExpression? ParseMemberAccessExpression(Parser context, IExpression expression)
@@ -222,12 +245,22 @@ namespace Punica.Linq.Dynamic
             return method;
         }
 
+
+        // (person, petCollection) => new CustomObject{ OwnerName = person.FirstName, Pets = petCollection.Select(pet => pet.Name) }
+        // person => new Person{ person.FirstName }
+        // new Person{ person.FirstName }
+        // new { person.FirstName }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static NewToken ParseNewCallExpression(Parser context, Token methodToken)
+        private static NewToken ParseNewCallExpression(Parser context, Type? type = null)
         {
             var newToken = new NewToken();
 
-            var parameter = new Argument();
+            if (type != null)
+            {
+                newToken.SetType(type);
+            }
+
+            var argument = new Argument();
             context.NextToken(); // consume parenthesis
             int depth = 1;
 
@@ -239,16 +272,16 @@ namespace Punica.Linq.Dynamic
                         throw new ArgumentException("Invalid Case Check algorithm"); // possibly not a option
                     case TokenId.RightCurlyParen:
                         depth--;
-                        if (parameter.Tokens.Count > 0)
+                        if (argument.Tokens.Count > 0)
                         {
-                            newToken.AddToken(parameter);
+                            newToken.AddToken(argument);
                         }
                         context.NextToken();
                         break;
                     case TokenId.Comma:
-                        newToken.AddToken(parameter);
+                        newToken.AddToken(argument);
                         context.NextToken();
-                        parameter = new Argument();
+                        argument = new Argument();
                         break;
                     default:
                         {
@@ -256,7 +289,7 @@ namespace Punica.Linq.Dynamic
 
                             if (token != null)
                             {
-                                parameter.AddToken(token);
+                                argument.AddToken(token);
                             }
 
                             break;
@@ -272,7 +305,34 @@ namespace Punica.Linq.Dynamic
             return newToken;
         }
 
-        
+
+        private static string ParseTypeName(Parser context)
+        {
+            var sb = new StringBuilder();
+            sb.Append(context.CurrentToken.Text);
+
+            context.NextToken(); //consume current type or namespace
+
+            while (context.CurrentToken.Id is TokenId.Dot)
+            {
+                context.NextToken(); // consume the dot
+
+                var memberToken = context.CurrentToken;
+
+                if (context.CurrentToken.Id != TokenId.Identifier)
+                {
+                    throw new Exception("Expected identifier after dot");
+                }
+
+                sb.Append(".");
+                sb.Append(context.CurrentToken.Text);
+
+                context.NextToken(); // consume the member
+            }
+
+            return sb.ToString();
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static IExpression ParseVariableExpression(Parser context, Token token)
         {
@@ -307,6 +367,6 @@ namespace Punica.Linq.Dynamic
             //TODO: use  var variableExpression = Expression.Variable(variableType, variableName);
         }
 
-      
+
     }
 }

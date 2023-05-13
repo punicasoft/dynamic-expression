@@ -31,7 +31,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.EndsWith('{y}')";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<bool>>(expression);
 
             var actual = func();
@@ -48,7 +48,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.StartsWith('{y}')";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<bool>>(expression);
 
             var actual = func();
@@ -65,7 +65,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.Contains('{y}')";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<bool>>(expression);
 
             var actual = func();
@@ -82,7 +82,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.Trim()";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<string>>(expression);
 
             var actual = func();
@@ -97,7 +97,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.Substring(10)";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<string>>(expression);
 
             var actual = func();
@@ -112,7 +112,7 @@ namespace Punica.Linq.Dynamic.Tests
             string expression = $"@x.Substring(5 , 10)";
 
             var func = new Evaluator()
-                .AddIdentifier("x", Expression.Constant(x))
+                .AddVariable("x", x)
                 .Evaluate<Func<string>>(expression);
 
             var actual = func();

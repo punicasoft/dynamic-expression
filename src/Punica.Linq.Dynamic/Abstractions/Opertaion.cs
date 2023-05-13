@@ -49,6 +49,7 @@ namespace Punica.Linq.Dynamic.Abstractions
                 return (Convert(left, typeof(byte)), Convert(right, typeof(byte)));
             }
 
+            //TODO check if this work as intended since string value bull check will match this condition
             if(left.Type == typeof(string) || left.Type == typeof(object))
             {
                 return (Convert(left, right.Type), Convert(right, right.Type));

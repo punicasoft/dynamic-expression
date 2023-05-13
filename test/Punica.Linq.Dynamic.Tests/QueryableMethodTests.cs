@@ -93,9 +93,9 @@ namespace Punica.Linq.Dynamic.Tests
             var expression = "fruits.Contains(@apple, @prodc)";
 
             var context = new Evaluator()
-                .AddIdentifier("apple", Expression.Constant(apple))
-                .AddIdentifier("prodc", Expression.Constant(prodc))
-                .AddParameter(Expression.Parameter(fruits.GetType(), "fruits"));
+                .AddVariable("apple", apple)
+                .AddVariable("prodc", prodc)
+                .AddParameter(fruits.GetType(), "fruits");
 
             var actual = context.Evaluate(expression, fruits);
             var expected = fruits.Contains(apple, prodc);
