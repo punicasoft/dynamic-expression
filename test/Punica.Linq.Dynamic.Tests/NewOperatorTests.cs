@@ -129,5 +129,26 @@ namespace Punica.Linq.Dynamic.Tests
             Assert.Equal(a, actual.ToString());
         }
 
+
+        [Theory]
+        [InlineData("person => new Utils.Person{ person.FirstName , person.LastName }")]
+        [InlineData("person => new Punica.Linq.Dynamic.Tests.Utils.Person{ person.FirstName , person.LastName }")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithNameSpace_ShouldWork(string stringExp)
+        {
+            var resultExpression = GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person"));
+            var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
+            var a = new Person() { FirstName = Data.Persons[0].FirstName, LastName = Data.Persons[0].LastName }.ToString();
+            Assert.Equal(a, actual.ToString());
+        }
+
+        [Theory]
+        [InlineData("person => new Utils2.Person{ person.FirstName , person.LastName }", "Unsupported type Utils2.Person")]
+        [InlineData("person => new Punica.Dynamic.Tests.Utils.Person{ person.FirstName , person.LastName }", "Unsupported type Punica.Dynamic.Tests.Utils.Person")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithInvalidNameSpace_ShouldThrowError(string stringExp, string error)
+        {
+            var exception = Assert.Throws<ArgumentException>(() => GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person")));
+            Assert.Equal(error, exception.Message);
+        }
+
     }
 }

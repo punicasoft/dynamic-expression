@@ -1,9 +1,8 @@
 ﻿using System.Linq.Expressions;
 using Punica.Dynamic;
 using Punica.Linq.Dynamic.Abstractions;
-using Punica.Linq.Dynamic.Expressions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
     public class NewToken : IExpression
     {
@@ -12,11 +11,11 @@ namespace Punica.Linq.Dynamic.Tokens
         public ExpressionType ExpressionType => ExpressionType.New;
         public Type? Type { get; private set; }
         public bool IsAnonymous { get; private set; } = true;
-        
+
         public NewToken()
         {
             Arguments = new List<Argument>();
-           
+
         }
 
         public void AddToken(Argument token)
@@ -73,12 +72,12 @@ namespace Punica.Linq.Dynamic.Tokens
             {
 
                 var properties = new List<AnonymousProperty>();
-                var bindkeys = new Dictionary<string, Expression>();
+                var bindKeys = new Dictionary<string, Expression>();
 
                 foreach (var expression in expressions)
                 {
                     var name = GetName(expression);
-                    bindkeys[name] = expression;
+                    bindKeys[name] = expression;
                     properties.Add(new AnonymousProperty(name, expression.Type));
                 }
 
@@ -89,19 +88,19 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 foreach (var member in members)
                 {
-                    bindings.Add(Expression.Bind(member, bindkeys[member.Name]));
+                    bindings.Add(Expression.Bind(member, bindKeys[member.Name]));
                 }
 
                 return Expression.MemberInit(Expression.New(type), bindings);
             }
             else
             {
-                var bindkeys = new Dictionary<string, Expression>();
+                var bindKeys = new Dictionary<string, Expression>();
 
                 foreach (var expression in expressions)
                 {
                     var name = GetName(expression);
-                    bindkeys[name] = expression;
+                    bindKeys[name] = expression;
                 }
 
                 var bindings = new List<MemberBinding>();
@@ -109,9 +108,9 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 foreach (var member in members)
                 {
-                    if (bindkeys.ContainsKey(member.Name))
+                    if (bindKeys.ContainsKey(member.Name))
                     {
-                        bindings.Add(Expression.Bind(member, bindkeys[member.Name]));
+                        bindings.Add(Expression.Bind(member, bindKeys[member.Name]));
                     }
                 }
 
