@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Punica.Linq.Dynamic.Abstractions;
@@ -35,97 +36,115 @@ namespace Punica.Linq.Dynamic
         {
             var token = context.CurrentToken;
 
-            if (token.Id == TokenId.Unknown)
+            switch (token.Id)
             {
-                throw new Exception("Unknown token");
-            }
-
-            // Person.Name or Person() or Person.Select() or  Person.Select().ToList()
-            // @person.Name or @person.Select() or  @person.Select().ToList()\
-            // new { Name} 
-            // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
-            // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
-            // new Person {Name }
-            if (token.Id == TokenId.Identifier || token.Id == TokenId.Variable)
-            {
-                context.NextToken();
-                var nextToken = context.CurrentToken;
-
-                if (nextToken.Id == TokenId.Dot)
+                // Person.Name or Person() or Person.Select() or  Person.Select().ToList()
+                // @person.Name or @person.Select() or  @person.Select().ToList()\
+                // new { Name} 
+                // Select( a=> a.Name ) or Select( a=> a ) or Select( a => new {a.Name})
+                // GroupBy( @pets, p => p, u => u.Pets, (a,b) => new {a.Name, b.Owner} )
+                // new Person {Name }
+                case TokenId.Identifier:
+                case TokenId.Variable:
                 {
-                    // Handle property or method access chain
-                    var expression = ParseVariableExpression(context, token); //handle initial variable or parameter access.
-                    var memberExpression = ParseMemberAccessExpression(context, expression); //handle chaining
-                    return memberExpression;
-                }
-                else if (nextToken.Id == TokenId.LeftParenthesis)
-                {
-                    // Handle method access chain
+                    context.NextToken();
+                    var nextToken = context.CurrentToken;
 
-                    if (token.Id == TokenId.Variable)
+                    if (nextToken.Id == TokenId.Dot)
                     {
-                        throw new Exception("Expected identifier before method call");
-                    }
-
-                    // Handle method call
-                    var methodCallExpression = ParseMethodCallExpression(context, context.MethodContext.AddOrGetParameter(), token);
-                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression); //handle chaining
-
-                    return memberExpression;
-                }
-                else if (nextToken.Id == TokenId.Lambda)
-                {
-                    // Handle lambda expression
-                    return new PropertyToken(null, token.Text);
-
-                }
-                else
-                {
-                    // Handle variable
-                    return ParseVariableExpression(context, token);
-                }
-            }
-            else if (token.Id == TokenId.New)
-            {
-                context.NextToken();
-                var nextToken = context.CurrentToken;
-
-                if (nextToken.Id == TokenId.LeftCurlyParen)
-                {
-
-                    // Handle new call
-                    var methodCallExpression = ParseNewCallExpression(context);
-                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
-                    return memberExpression;
-                }
-                else if (nextToken.Id == TokenId.Identifier)
-                {
-                    // Handle new call
-                    var typeName = ParseTypeName(context); //check until next token
-                    var type = context.FindType(typeName);
-
-                    if (context.CurrentToken.Id == TokenId.LeftCurlyParen)
-                    {
-                        var methodCallExpression = ParseNewCallExpression(context, type);
-                        var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                        // Handle property or method access chain
+                        var expression = ParseVariableExpression(context, token); //handle initial variable or parameter access.
+                        var memberExpression = ParseMemberAccessExpression(context, expression); //handle chaining
                         return memberExpression;
+                    }
+                    else if (nextToken.Id == TokenId.LeftParenthesis)
+                    {
+                        // Handle method access chain
+
+                        if (token.Id == TokenId.Variable)
+                        {
+                            throw new Exception("Expected identifier before method call");
+                        }
+
+                        // Handle method call
+                        var methodCallExpression = ParseMethodCallExpression(context, context.MethodContext.AddOrGetParameter(), token);
+                        var memberExpression = ParseMemberAccessExpression(context, methodCallExpression); //handle chaining
+
+                        return memberExpression;
+                    }
+                    else if (nextToken.Id == TokenId.Lambda)
+                    {
+                        // Handle lambda expression
+                        return new PropertyToken(null, token.Text);
+
                     }
                     else
                     {
-                        throw new Exception("Expected curly bracket after new call with type");
+                        // Handle variable
+                        return ParseVariableExpression(context, token);
                     }
                 }
-                else
+                case TokenId.New:
                 {
-                    throw new Exception("Expected curly bracket after new call");
-                }
+                    context.NextToken();
+                    var nextToken = context.CurrentToken;
 
-                throw new Exception("Expected curly bracket after new call");
-            }
-            else
-            {
-                context.NextToken();
-                return token.ParsedToken;
+                    switch (nextToken.Id)
+                    {
+                        case TokenId.LeftCurlyParen:
+                        {
+                            // Handle new call new {Field1, Field2}
+                            var methodCallExpression = ParseNewCallExpression(context, new NewAnonymousToken());
+                            var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                            return memberExpression;
+                        }
+                        case TokenId.Identifier:
+                        {
+                            // Handle new call
+                            var typeName = ParseTypeName(context); //check until next token
+                            var type = context.FindType(typeName);
+
+                            switch (context.CurrentToken.Id)
+                            {
+                                case TokenId.LeftCurlyParen:
+                                {
+                                    // Handle new call new ClassA{Field1, Field2}
+                                    var methodCallExpression = ParseNewCallExpression(context, new NewToken(type));
+                                    var memberExpression = ParseMemberAccessExpression(context, methodCallExpression);  //handle chaining
+                                    return memberExpression;
+                                }
+                                case TokenId.LeftParenthesis:
+                                {
+                                    var constructorArguments = ParseArguments(context);
+
+                                    // Handle new call new ClassA(Field1, Field2)
+                                    INewExpression newConstructorToken = new NewConstructorToken(type, constructorArguments);
+
+                                    if (context.CurrentToken.Id == TokenId.LeftCurlyParen)
+                                    {
+                                        // Handle new call new ClassA(Field1, Field2){Field3 = Field3}
+                                        newConstructorToken = ParseNewCallExpression(context, newConstructorToken);
+                                    }
+                                    var memberExpression = ParseMemberAccessExpression(context, newConstructorToken);  //handle chaining
+                                    return memberExpression;
+                                }
+                                default:
+                                    throw new Exception("Expected curly bracket after new call with type");
+                            }
+
+                            break;
+                        }
+                        default:
+                            throw new Exception("Expected curly bracket after new call");
+                    }
+
+                    break;
+                }
+                case TokenId.Unknown:
+                    throw new Exception("Unknown token");
+                default:
+                    context.NextToken();
+                    return token.ParsedToken;
             }
         }
 
@@ -190,7 +209,7 @@ namespace Punica.Linq.Dynamic
                             {
                                 var lambdas = context.MethodContext.MoveToNextArgument();
                                 argument.AddParameters(lambdas);
-                                method.AddToken(argument);
+                                method.AddArgument(argument);
                             }
                             else
                             {
@@ -210,7 +229,7 @@ namespace Punica.Linq.Dynamic
                         {   // Add(FirstName, LastName) }
                             var lambdas = context.MethodContext.MoveToNextArgument();
                             argument.AddParameters(lambdas);
-                            method.AddToken(argument);
+                            method.AddArgument(argument);
                             argument = new Argument();
                         }
                         context.NextToken();
@@ -245,20 +264,95 @@ namespace Punica.Linq.Dynamic
         }
 
 
+        private static List<Argument> ParseArguments(Parser context)
+        {
+            context.MethodContext.NextDepth();
+
+            var arguments = new List<Argument>();
+            var argument = new Argument();
+            context.NextToken(); // consume parenthesis
+            int depth = 1;
+
+            while (context.CurrentToken.Id != TokenId.End && depth > 0)
+            {
+                switch (context.CurrentToken.Id)
+                {
+                    // Math.Add((3*5)+1,4)
+                    case TokenId.LeftParenthesis:
+                        depth++;
+                        argument.AddToken(context.CurrentToken.ParsedToken!);
+                        context.NextToken();
+                        break;
+                    case TokenId.RightParenthesis:
+                        depth--;
+                        if (argument.Tokens.Count > 0)
+                        {
+                            if (depth == 0)  // only add if there any tokens and we are at the end of the method
+                            {
+                                var lambdas = context.MethodContext.MoveToNextArgument();
+                                argument.AddParameters(lambdas);
+                                arguments.Add(argument);
+                            }
+                            else
+                            {
+                                argument.AddToken(context.CurrentToken.ParsedToken!);
+                            }
+                        }
+                        context.NextToken();
+                        break;
+
+                    case TokenId.Comma:
+                        // (person, petCollection) => new { OwnerName = person.FirstName, Pets = petCollection.Select(pet => pet.Name) }
+                        if (argument.IsFirstOpenParenthesis())
+                        {
+                            argument.AddToken(context.CurrentToken.ParsedToken!);
+                        }
+                        else
+                        {   // Add(FirstName, LastName) }
+                            var lambdas = context.MethodContext.MoveToNextArgument();
+                            argument.AddParameters(lambdas);
+                            arguments.Add(argument);
+                            argument = new Argument();
+                        }
+                        context.NextToken();
+                        break;
+                    case TokenId.Lambda:
+                        var paraNames = argument.ProcessLambda();
+                        context.MethodContext.AddParameters(paraNames);
+                        context.NextToken();// consume lambda
+                        break;
+                    default:
+                        {
+                            var token = GetToken(context);
+
+                            if (token != null)
+                            {
+                                argument.AddToken(token);
+                            }
+
+                            break;
+                        }
+                }
+            }
+
+            if (depth != 0)
+            {
+                throw new ArgumentException("Input contains mismatched parentheses.");
+            }
+
+            context.MethodContext.PreviousDepth();
+
+            return arguments;
+        }
+
+
         // (person, petCollection) => new CustomObject{ OwnerName = person.FirstName, Pets = petCollection.Select(pet => pet.Name) }
         // person => new Person{ person.FirstName }
         // new Person{ person.FirstName }
         // new { person.FirstName }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static NewToken ParseNewCallExpression(Parser context, Type? type = null)
+        private static INewExpression ParseNewCallExpression(Parser context, INewExpression newToken)
         {
-            var newToken = new NewToken();
-
-            if (type != null)
-            {
-                newToken.SetType(type);
-            }
-
             var argument = new Argument();
             context.NextToken(); // consume parenthesis
             int depth = 1;
@@ -268,17 +362,17 @@ namespace Punica.Linq.Dynamic
                 switch (context.CurrentToken.Id)
                 {
                     case TokenId.LeftCurlyParen:
-                        throw new ArgumentException("Invalid Case Check algorithm"); // possibly not a option
+                        throw new UnreachableException("Invalid Case Check algorithm"); // possibly not a option
                     case TokenId.RightCurlyParen:
                         depth--;
                         if (argument.Tokens.Count > 0)
                         {
-                            newToken.AddToken(argument);
+                            newToken.AddArgument(argument);
                         }
                         context.NextToken();
                         break;
                     case TokenId.Comma:
-                        newToken.AddToken(argument);
+                        newToken.AddArgument(argument);
                         context.NextToken();
                         argument = new Argument();
                         break;

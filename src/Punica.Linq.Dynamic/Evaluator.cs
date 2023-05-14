@@ -51,6 +51,12 @@ namespace Punica.Linq.Dynamic
             return this;
         }
 
+        public Evaluator AddType<T>()
+        {
+           _types.Add(typeof(T));
+            return this;
+        }
+
         /// <summary>
         /// Get variable through instance properties
         /// </summary>

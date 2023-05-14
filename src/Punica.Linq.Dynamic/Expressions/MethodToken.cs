@@ -19,7 +19,7 @@ namespace Punica.Linq.Dynamic.Expressions
             Arguments = new List<Argument>();
         }
 
-        public void AddToken(Argument token)
+        public void AddArgument(Argument token)
         {
             Arguments.Add(token);
         }

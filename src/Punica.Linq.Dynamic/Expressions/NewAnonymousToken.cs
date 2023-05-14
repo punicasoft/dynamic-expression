@@ -1,23 +1,20 @@
-﻿using System.Linq.Expressions;
-using Punica.Dynamic;
+﻿using Punica.Dynamic;
 using Punica.Linq.Dynamic.Abstractions;
+using System.Linq.Expressions;
 
 namespace Punica.Linq.Dynamic.Expressions
 {
-    //TODO merge with constructor version
-    public class NewToken : INewExpression
+    public class NewAnonymousToken : INewExpression
     {
         public List<Argument> Arguments { get; }
         public TokenType TokenType => TokenType.Member;//TODO check this
         public ExpressionType ExpressionType => ExpressionType.New;
         public Type? Type { get; private set; }
-        public bool IsAnonymous { get; private set; } = true;
 
-        public NewToken(Type type)
+        public NewAnonymousToken()
         {
             Arguments = new List<Argument>();
-            Type = type;
-            IsAnonymous = false;
+
         }
 
         public void AddArgument(Argument token)
@@ -59,33 +56,36 @@ namespace Punica.Linq.Dynamic.Expressions
             List<Expression> expressions = new List<Expression>();
             foreach (var argument in Arguments)
             {
-                var expression = ExpressionEvaluator.Evaluate(argument.Tokens);
+                var expression = argument.Evaluate();
 
                 expressions.Add(expression);
             }
 
+
+            var properties = new List<AnonymousProperty>();
             var bindKeys = new Dictionary<string, Expression>();
 
             foreach (var expression in expressions)
             {
                 var name = GetName(expression);
                 bindKeys[name] = expression;
+                properties.Add(new AnonymousProperty(name, expression.Type));
             }
 
+            Type = AnonymousTypeFactory.CreateType(properties);
+
             var bindings = new List<MemberBinding>();
-            var members = Type!.GetProperties();
+            var members = Type.GetProperties();
 
             foreach (var member in members)
             {
-                if (bindKeys.ContainsKey(member.Name))
-                {
-                    bindings.Add(Expression.Bind(member, bindKeys[member.Name]));
-                }
+                bindings.Add(Expression.Bind(member, bindKeys[member.Name]));
             }
 
-            return Expression.MemberInit(Expression.New(Type!), bindings);
-
+            return Expression.MemberInit(Expression.New(Type), bindings);
 
         }
+
+
     }
 }
