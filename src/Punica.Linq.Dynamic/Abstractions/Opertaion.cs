@@ -1,8 +1,9 @@
 ﻿using System.Linq.Expressions;
+using Punica.Linq.Dynamic.Abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens.abstractions
+namespace Punica.Linq.Dynamic.Abstractions
 {
-    public abstract class Operation: IOperation
+    public abstract class Operation : IOperation
     {
         public virtual bool IsLeftAssociative => true;
         public abstract short Precedence { get; }
@@ -46,6 +47,17 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
             if (left.Type == typeof(byte) || right.Type == typeof(byte))
             {
                 return (Convert(left, typeof(byte)), Convert(right, typeof(byte)));
+            }
+
+            //TODO check if this work as intended since string value bull check will match this condition
+            if(left.Type == typeof(string) || left.Type == typeof(object))
+            {
+                return (Convert(left, right.Type), Convert(right, right.Type));
+            }
+
+            if (right.Type == typeof(string) || right.Type == typeof(object))
+            {
+                return (Convert(left, left.Type), Convert(right, left.Type));
             }
 
             throw new InvalidOperationException("Cannot add types " + left.Type + " and " + right.Type);

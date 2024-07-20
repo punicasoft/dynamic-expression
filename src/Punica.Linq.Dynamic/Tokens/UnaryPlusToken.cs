@@ -3,15 +3,15 @@ using Punica.Linq.Dynamic.Abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
-    public class OrToken : Operation
+    public class UnaryPlusToken:Operation
     {
-        public override short Precedence => 3;
-        public override ExpressionType ExpressionType => ExpressionType.OrElse;
+        public override short Precedence => 14;
+        public override ExpressionType ExpressionType => ExpressionType.UnaryPlus;
+
         public override Expression Evaluate(Stack<Expression> stack)
         {
             var right = stack.Pop();
-            var left = stack.Pop();
-            return Expression.OrElse(left, right);
+            return Expression.UnaryPlus(right);
         }
     }
 }

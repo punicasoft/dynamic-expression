@@ -1,5 +1,5 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
 namespace Punica.Linq.Dynamic
 {
@@ -11,45 +11,61 @@ namespace Punica.Linq.Dynamic
         /// <param name="tokens"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Expression Evaluate(List<IToken> tokens)
+        public static Expression Evaluate(IList<IToken> tokens)
         {
-            //If there is no tokens
             if (tokens.Count == 0)
             {
                 throw new ArgumentException("No tokens");
             }
 
             // Evaluate the expression using the shunting-yard algorithm
-            Stack<IToken> outputQueue = new Stack<IToken>();
-            Stack<IToken> operatorStack = new Stack<IToken>();
+            LinkedList<IToken> outputQueue = new LinkedList<IToken>();
+            Stack<IOperation> operatorStack = new Stack<IOperation>();
 
-            foreach (var token in tokens)
+            for (var i = 0; i < tokens.Count; i++)
             {
+                var token = tokens[i];
+
                 switch (token.TokenType)
                 {
                     case TokenType.Operator:
-                        // Pop operators from the stack until a lower-precedence or left-associative operator is found
-                        while (operatorStack.Count > 0 &&
-                               (token.Precedence < operatorStack.Peek().Precedence ||
-                               token.Precedence == operatorStack.Peek().Precedence && token.IsLeftAssociative))
+
+                        // Check if the '-'/'+' operator is a unary minus or unary plus
+                        if (token.ExpressionType == ExpressionType.Subtract && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
                         {
-                            outputQueue.Push(operatorStack.Pop());
+                            token = TokenCache.NegateToken;
+                            tokens[i] = token;
+                        }
+                        else if(token.ExpressionType == ExpressionType.Add && (i == 0 || tokens[i - 1].TokenType == TokenType.Operator || tokens[i - 1].TokenType == TokenType.OpenParen))
+                        {
+                            token = TokenCache.UnaryPlusToken;
+                            tokens[i] = token;
+                        }
+
+                        var operation = (IOperation)token;
+
+                        // Pop operators from the stack until a lower-precedence or left-associative operator is found
+                        while (operatorStack.TryPeek(out var topOperator) &&
+                               (operation.Precedence < topOperator.Precedence ||
+                                operation.Precedence == topOperator.Precedence && operation.IsLeftAssociative))
+                        {
+                            outputQueue.AddLast(operatorStack.Pop());
                         }
 
                         // Push the new operator onto the stack
-                        operatorStack.Push(token);
+                        operatorStack.Push(operation);
                         break;
 
                     case TokenType.OpenParen:
                         // Push left parentheses onto the stack
-                        operatorStack.Push(token);
+                        operatorStack.Push((IOperation)token);
                         break;
 
                     case TokenType.CloseParen:
                         // Pop operators from the stack and add them to the output queue until a left parenthesis is found
-                        while (operatorStack.Count > 0 && operatorStack.Peek().TokenType != TokenType.OpenParen)
+                        while (operatorStack.TryPeek(out var op) && op.TokenType != TokenType.OpenParen)
                         {
-                            outputQueue.Push(operatorStack.Pop());
+                            outputQueue.AddLast(operatorStack.Pop());
                         }
 
                         // If a left parenthesis was not found, the expression is invalid
@@ -64,39 +80,33 @@ namespace Punica.Linq.Dynamic
 
                     case TokenType.Unknown:
                         throw new ArgumentException("Should not be available");
-                        break;
 
                     default:
                         // Push operands onto the output queue
-                        outputQueue.Push(token);
+                        outputQueue.AddLast(token);
                         break;
                 }
             }
 
             // Pop any remaining operators from the stack and add them to the output queue
-            while (operatorStack.Count > 0)
+            while (operatorStack.TryPop(out var remainingOperator))
             {
-                if (operatorStack.Peek().TokenType == TokenType.OpenParen)
+                if (remainingOperator.TokenType == TokenType.OpenParen)
                 {
                     throw new ArgumentException("Mismatched parentheses");
                 }
 
-                outputQueue.Push(operatorStack.Pop());
+                outputQueue.AddLast(remainingOperator);
             }
-
-
-            // Evaluate Operators
-
+            
+            // Evaluate the expression using a reverse polish notation evaluator
             Stack<Expression> evaluationStack = new Stack<Expression>();
 
-            var reverse = outputQueue.Reverse();
-
-
-            foreach (var token in reverse)
+            foreach (var token in outputQueue)
             {
                 if (token is IOperation ot)
                 {
-                    evaluationStack.Push(ot.Evaluate(evaluationStack)); 
+                    evaluationStack.Push(ot.Evaluate(evaluationStack));
                 }
                 else if (token is IExpression vt)
                 {
@@ -106,63 +116,10 @@ namespace Punica.Linq.Dynamic
                 {
                     throw new ArgumentException("Invalid token");
                 }
-
             }
-
-            outputQueue.Clear();
 
             return evaluationStack.Pop();
         }
 
-        public static (Expression left, Expression right) ConvertExpressions(Expression left, Expression right)
-        {
-            if (left.Type == right.Type)
-            {
-                return (left, right);
-            }
-
-            if (left.Type == typeof(double) || right.Type == typeof(double))
-            {
-                return (Convert(left, typeof(double)), Convert(right, typeof(double)));
-            }
-
-            if (left.Type == typeof(float) || right.Type == typeof(float))
-            {
-                return (Convert(left, typeof(float)), Convert(right, typeof(float)));
-            }
-
-            if (left.Type == typeof(long) || right.Type == typeof(long))
-            {
-                return (Convert(left, typeof(long)), Convert(right, typeof(long)));
-            }
-
-            if (left.Type == typeof(int) || right.Type == typeof(int))
-            {
-                return (Convert(left, typeof(int)), Convert(right, typeof(int)));
-            }
-
-            if (left.Type == typeof(short) || right.Type == typeof(short))
-            {
-                return (Convert(left, typeof(short)), Convert(right, typeof(short)));
-            }
-
-            if (left.Type == typeof(byte) || right.Type == typeof(byte))
-            {
-                return (Convert(left, typeof(byte)), Convert(right, typeof(byte)));
-            }
-
-            throw new InvalidOperationException("Cannot add types " + left.Type + " and " + right.Type);
-
-        }
-
-        private static Expression Convert(Expression expression, Type type)
-        {
-            if (expression.Type == type)
-            {
-                return expression;
-            }
-
-            return Expression.Convert(expression, type);
-        }
     }
 }

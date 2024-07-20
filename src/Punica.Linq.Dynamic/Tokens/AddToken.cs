@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
+using Punica.Linq.Dynamic.Abstractions;
 using Punica.Linq.Dynamic.Reflection;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {

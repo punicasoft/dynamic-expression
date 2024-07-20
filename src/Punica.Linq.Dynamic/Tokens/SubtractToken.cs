@@ -1,5 +1,5 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {
@@ -7,15 +7,10 @@ namespace Punica.Linq.Dynamic.Tokens
     {
         public override short Precedence => 11;
         public override ExpressionType ExpressionType => ExpressionType.Subtract;
+
         public override Expression Evaluate(Stack<Expression> stack)
         {
             var right = stack.Pop();
-
-            if (stack.Count == 0)
-            {
-                return Expression.Negate(right);
-            }
-
             var left = stack.Pop();
 
             var tuple = ConvertExpressions(left, right);
