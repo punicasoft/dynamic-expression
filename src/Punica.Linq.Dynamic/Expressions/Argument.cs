@@ -1,21 +1,15 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
-    public class Argument //: ITokenList
+    public class Argument
     {
         private readonly List<string> _lambdas = new List<string>();
-        private bool _evaluvated = false;
+        private bool _evaluated = false;
         private Expression _expression;
         private ParameterToken[] _parameter;
-        // public IReadOnlyList<string> Lambdas => _lambdas;
-        public bool IsLeftAssociative => true;
-        public IExpression? Parameter { get; } = null;
         public List<IToken> Tokens { get; }
-        public short Precedence => 0;
-        public TokenType TokenType => TokenType.List;
-        public ExpressionType ExpressionType => ExpressionType.Extension;
 
         public Argument()
         {
@@ -35,16 +29,15 @@ namespace Punica.Linq.Dynamic.Tokens
 
         public IReadOnlyList<string> ProcessLambda()
         {
-            bool openParenthesis = false;
-            bool closeParenthesis = false;
+            short depth = 0;
 
             foreach (var token in Tokens)
             {
                 if (token.TokenType == TokenType.OpenParen)
                 {
-                    if (!openParenthesis)
+                    if (depth == 0)
                     {
-                        openParenthesis = true;
+                        depth++;
                         continue;
                     }
 
@@ -53,9 +46,9 @@ namespace Punica.Linq.Dynamic.Tokens
 
                 if (token.TokenType == TokenType.CloseParen)
                 {
-                    if (!closeParenthesis && openParenthesis && Tokens.IndexOf(token) == Tokens.Count - 1)
+                    if (depth == 1 && Tokens.IndexOf(token) == Tokens.Count - 1) // must be the last token
                     {
-                        closeParenthesis = true;
+                        depth--;
                         continue;
                     }
 
@@ -80,10 +73,12 @@ namespace Punica.Linq.Dynamic.Tokens
                 }
             }
 
-            if (!openParenthesis || !closeParenthesis)
+            if (depth != 0)
             {
                 throw new ArgumentException("Invalid Expression");
             }
+
+            Tokens.Clear();
 
             return _lambdas;
         }
@@ -98,7 +93,7 @@ namespace Punica.Linq.Dynamic.Tokens
             return false;
         }
 
-        public ParameterExpression SetParameterExpressionBody(Type type, int index)
+        public ParameterExpression SetParameterType(Type type, int index)
         {
             if (index >= _parameter.Length)
             {
@@ -135,10 +130,10 @@ namespace Punica.Linq.Dynamic.Tokens
 
         internal Expression Evaluate()
         {
-            if (!_evaluvated)
+            if (!_evaluated)
             {
                 _expression = ExpressionEvaluator.Evaluate(Tokens);
-                _evaluvated = true;
+                _evaluated = true;
                 return _expression;
             }
 
@@ -161,20 +156,5 @@ namespace Punica.Linq.Dynamic.Tokens
 
         }
 
-        //public ParameterExpression? SetParameterExpressionBody(IExpression memberExpression)
-        //{
-        //    if (_parameter.Length > 1)
-        //    {
-        //        throw new Exception("More than 1 arg is not handled");
-        //    }
-
-        //    if (_parameter.Length == 1)
-        //    {
-        //        _parameter[0].SetExpression(memberExpression);
-        //        return (ParameterExpression)_parameter[0].Evaluate();
-        //    }
-
-        //    return null;
-        //}
     }
 }

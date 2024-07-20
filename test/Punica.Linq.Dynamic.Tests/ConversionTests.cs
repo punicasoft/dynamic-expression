@@ -41,5 +41,21 @@ namespace Punica.Linq.Dynamic.Tests
 
             Assert.Equal(Data.Collection.Statuses.Contains(x), actual);
         }
+
+
+        [Theory]
+        [InlineData("Name == null ")]
+        [InlineData("null == Name ")]
+        public void Evaluate_WhenExpressionIsHasNullParameter_ShouldWork(string expression)
+        {
+            var pet = new Pet
+            {
+                Name = null
+            };
+            
+            var resultExpression = GetExpression<Pet, bool>(expression);
+            var actual = resultExpression.Compile()(pet);
+            Assert.True(actual);
+        }
     }
 }

@@ -1,13 +1,12 @@
-﻿using System.Globalization;
+﻿using Punica.Linq.Dynamic.Abstractions;
+using System.Globalization;
 using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens;
-using Punica.Linq.Dynamic.Tokens.abstractions;
 
 namespace Punica.Linq.Dynamic
 {
-    public class TokenContext
+    internal class Parser
     {
-        private readonly Dictionary<string, Identifier> _identifiers = new Dictionary<string, Identifier>();
+        private readonly Dictionary<string, Identifier> _identifiers;
         private static readonly Dictionary<string, Alias> Aliases = new()
         {
             { "eq", new Alias() { Id = TokenId.Equal, Token = TokenCache.Equal} },
@@ -30,9 +29,12 @@ namespace Punica.Linq.Dynamic
 
             { "true",new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.True} },
             { "false", new Alias() { Id =  TokenId.BooleanLiteral, Token = TokenCache.False} },
+            { "null", new Alias() { Id =  TokenId.Null, Token = TokenCache.Null} },
+            { "new", new Alias() { Id =  TokenId.New,} },
         };
 
         private readonly string _txt;
+        private readonly HashSet<Type> _types;
         private int _pos;
 
         public bool CanRead => _pos < _txt.Length;
@@ -50,42 +52,16 @@ namespace Punica.Linq.Dynamic
         public MethodContext MethodContext { get; }
 
 
-        public TokenContext(string txt, Expression? variablesInstance = null)
+        public Parser(string text, MethodContext methodContext, Expression? variablesInstance, HashSet<Type> types, Dictionary<string, Identifier> identifiers)
         {
-            _txt = txt;
+            _txt = text;
+            _types = types;
             VariablesInstance = variablesInstance;
+            _identifiers = identifiers;
+            MethodContext = methodContext;
             SetPosition(0);
-            MethodContext = new MethodContext();
             NextToken();
         }
-
-        public void AddStartParameter(Type type)
-        {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, "_arg")));
-        }
-
-        public void AddLambda(Type type, string name)
-        {
-            MethodContext.AddParameter(new ParameterToken(Expression.Parameter(type, name)));
-        }
-
-        public TokenContext AddParameter(ParameterExpression parameter)
-        {
-            MethodContext.AddParameter(new ParameterToken(parameter));
-            return this;
-        }
-
-        public TokenContext AddIdentifier(string name, Expression expression)
-        {
-            _identifiers.Add(name, new Identifier(name, expression));
-            return this;
-        }
-
-        public Identifier? GetIdentifier(string name)
-        {
-            return _identifiers.TryGetValue(name, out var identifier) ? identifier : null;
-        }
-
 
         public void SetPosition(int pos)
         {
@@ -115,7 +91,7 @@ namespace Punica.Linq.Dynamic
                 NextChar();
             }
 
-            // ReSharper disable once RedundantAssignment
+
             TokenId tokenId = TokenId.Unknown;
             IToken? token = null;
             string stringVal = string.Empty;
@@ -510,7 +486,7 @@ namespace Punica.Linq.Dynamic
         public bool Match(string text)
         {
             int j;
-            int k = _pos;
+            int k;
             for (j = 0; j < text.Length; j++)
             {
                 k = _pos + j;
@@ -542,6 +518,25 @@ namespace Punica.Linq.Dynamic
             var stringVal = _txt.Substring(startIndex, CurrentPosition - startIndex);
 
             return new ValueToken(Expression.Constant(stringVal));
+        }
+
+        public Type FindType(string type)
+        {
+            var types = _types.Where(t => t.Name == type || t.FullName!.EndsWith(type)).ToList();
+
+            var count = types.Count();
+
+            if (count > 1)
+            {
+                throw new ArgumentException($"Ambiguous type {type}");
+            }
+
+            if (count == 0)
+            {
+                throw new ArgumentException($"Unsupported type {type}");
+            }
+
+            return types.First();
         }
     }
 }

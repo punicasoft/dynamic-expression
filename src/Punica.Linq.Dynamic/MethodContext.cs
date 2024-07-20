@@ -1,6 +1,6 @@
-﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+﻿using System.Diagnostics;
+using System.Linq.Expressions;
+using Punica.Linq.Dynamic.Expressions;
 
 namespace Punica.Linq.Dynamic
 {
@@ -14,15 +14,6 @@ namespace Punica.Linq.Dynamic
 
         public MethodContext()
         {
-        }
-
-        public MethodContext(ParameterExpression parameter) : this(new ParameterToken(parameter))
-        {
-        }
-
-        public MethodContext(ParameterToken parameter)
-        {
-            AddParameter(parameter);
         }
 
         public ParameterToken? GetParameter(string name)
@@ -98,11 +89,6 @@ namespace Punica.Linq.Dynamic
             return Array.Empty<ParameterToken>();
         }
 
-        public void AddParameter(IExpression expression)
-        {
-            AddParameter(new ParameterToken(expression, _arg + _depth));
-        }
-
         public ParameterToken AddParameter(ParameterToken parameter)
         {
             foreach (var key in _parameters.Keys)
@@ -130,8 +116,28 @@ namespace Punica.Linq.Dynamic
             return parameter;
         }
 
+        /// <summary>
+        /// Call this to clear temp arguments added during lambda variable detection
+        /// Call after detecting => in a argument. 
+        /// </summary>
+        /// <exception cref="UnreachableException"></exception>
+        public void ClearDepthArgs()
+        {
+            if (_parameters.ContainsKey(_depth))
+            {
+                if (_parameters[_depth].Count > 1)
+                {
+                    throw new UnreachableException(
+                        "There can not be any other arg than first arg added during lambda variable detection");
+                }
+                _parameters[_depth].Clear();
+            }
+
+        }
+
         public void AddParameters(IReadOnlyList<string> paraNames)
         {
+            ClearDepthArgs();
             foreach (var name in paraNames)
             {
                 AddParameter(new ParameterToken(name));

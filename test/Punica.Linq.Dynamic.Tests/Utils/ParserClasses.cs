@@ -132,13 +132,18 @@
         public static Pet[] Pets ={
             new Pet { Name="Barley", Age=10 },
             new Pet { Name="Boots", Age=4 },
-            new Pet { Name="Whiskers", Age=6 }
+            new Pet { Name="Whiskers", Age=6 },
+            new Pet { Name="Brown", Age=1, Owner = new Person()}
         };
 
         public static string[] Fruits =
         {
             "apple", "passionfruit", "banana", "mango",
-            "orange", "blueberry", "grape", "strawberry","banana","blueberry" };
+            "orange", "blueberry", "grape", "strawberry","banana","blueberry"
+        };
+
+       
+
     }
 
     public class Numbers
@@ -189,6 +194,23 @@
         public List<Child> Children { get; set; }
     }
 
+    public class User
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+
+        public User(string firstName, string lastName)
+        {
+            FirstName = firstName;
+            LastName = lastName;
+        }
+
+        public User(string firstName)
+        {
+            FirstName = firstName;
+        }
+    }
+
     public class Account
     {
         public string Name { get; set; }
@@ -204,7 +226,7 @@
 
     public class Pet
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int Age { get; set; }
         public Person Owner { get; set; }
     }

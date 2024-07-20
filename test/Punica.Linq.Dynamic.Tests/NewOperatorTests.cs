@@ -4,7 +4,7 @@ using Punica.Linq.Dynamic.Tests.Utils;
 
 namespace Punica.Linq.Dynamic.Tests
 {
-    public class NewOperatorTests: ExpressionTestsBase
+    public class NewOperatorTests : ExpressionTestsBase
     {
         [Theory]
         [InlineData("new { FirstName , LastName }")]
@@ -99,7 +99,7 @@ namespace Punica.Linq.Dynamic.Tests
         [InlineData("new { person.FirstName , person.LastName }")]
         public void Evaluate_WhenExpressionIsNewExpressionWithLambda_ShouldWork(string stringExp)
         {
-            var resultExpression = GetGeneralExpression(stringExp,null, Expression.Parameter(typeof(Person), "person"));
+            var resultExpression = GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person"));
             var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
             var a = new { Data.Persons[0].FirstName, Data.Persons[0].LastName }.ToString();
             Assert.Equal(a, actual.ToString());
@@ -115,5 +115,56 @@ namespace Punica.Linq.Dynamic.Tests
             var a = new { personFirstName = Data.Persons[0].FirstName, personLastName = Data.Persons[0].LastName }.ToString();
             Assert.Equal(a, actual.ToString());
         }
+
+
+        [Theory]
+        [InlineData("person => new Person{ person.FirstName , person.LastName }")]
+        [InlineData("person=>new Person{person.FirstName,person.LastName}")]
+        [InlineData("new Person{ person.FirstName , person.LastName }")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithLambda_ShouldWork(string stringExp)
+        {
+            var resultExpression = GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person"));
+            var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
+            var a = new Person() { FirstName = Data.Persons[0].FirstName, LastName = Data.Persons[0].LastName }.ToString();
+            Assert.Equal(a, actual.ToString());
+        }
+
+
+        [Theory]
+        [InlineData("person => new Utils.Person{ person.FirstName , person.LastName }")]
+        [InlineData("person => new Punica.Linq.Dynamic.Tests.Utils.Person{ person.FirstName , person.LastName }")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithNameSpace_ShouldWork(string stringExp)
+        {
+            var resultExpression = GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person"));
+            var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
+            var a = new Person() { FirstName = Data.Persons[0].FirstName, LastName = Data.Persons[0].LastName }.ToString();
+            Assert.Equal(a, actual.ToString());
+        }
+
+        [Theory]
+        [InlineData("person => new Utils2.Person{ person.FirstName , person.LastName }", "Unsupported type Utils2.Person")]
+        [InlineData("person => new Punica.Dynamic.Tests.Utils.Person{ person.FirstName , person.LastName }", "Unsupported type Punica.Dynamic.Tests.Utils.Person")]
+        public void Evaluate_WhenExpressionIsNewInstanceExpressionWithInvalidNameSpace_ShouldThrowError(string stringExp, string error)
+        {
+            var exception = Assert.Throws<ArgumentException>(() => GetGeneralExpression(stringExp, null, Expression.Parameter(typeof(Person), "person")));
+            Assert.Equal(error, exception.Message);
+        }
+
+
+        [Theory]
+        [InlineData("person => new User(person.FirstName , person.LastName)")]
+        [InlineData("person=>new User(person.FirstName){person.LastName}")]
+        public void Evaluate_WhenExpressionIsNewConstructorExpressionWithLambda_ShouldWork(string stringExp)
+        {
+            var eval = new Evaluator()
+                .AddParameter<Person>("person")
+                .AddType<User>();
+
+            var resultExpression = eval.Parse(stringExp);
+            var actual = resultExpression.Compile().DynamicInvoke(Data.Persons[0]);
+            var a = new User(Data.Persons[0].FirstName, Data.Persons[0].LastName).ToString();
+            Assert.Equal(a, actual.ToString());
+        }
+
     }
 }

@@ -1,29 +1,25 @@
-﻿using System.Linq.Expressions;
-using Punica.Dynamic;
-using Punica.Linq.Dynamic.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+﻿using Punica.Dynamic;
+using Punica.Linq.Dynamic.Abstractions;
+using System.Linq.Expressions;
 
-namespace Punica.Linq.Dynamic.Tokens
+namespace Punica.Linq.Dynamic.Expressions
 {
-    public class NewToken : IExpressionToken
+    public class NewAnonymousToken : INewExpression
     {
-        // public Expression MemberExpression { get; }
-        // public IExpression? Parameter { get; }
-        public List<Argument> Tokens { get; }
-        public bool IsLeftAssociative => true;
-        public short Precedence => 14;
-        public TokenType TokenType => TokenType.Operator;
+        public List<Argument> Arguments { get; }
+        public TokenType TokenType => TokenType.Member;//TODO check this
         public ExpressionType ExpressionType => ExpressionType.New;
+        public Type? Type { get; private set; }
 
-        public NewToken()
+        public NewAnonymousToken()
         {
-            Tokens = new List<Argument>();
-            // Parameter = parameter;
+            Arguments = new List<Argument>();
+
         }
 
-        public void AddToken(Argument token)
+        public void AddArgument(Argument token)
         {
-            Tokens.Add(token);
+            Arguments.Add(token);
         }
 
         private string GetName(Expression expression)
@@ -32,19 +28,23 @@ namespace Punica.Linq.Dynamic.Tokens
             {
                 case ExpressionType.MemberAccess:
                     var memberExpression = (MemberExpression)expression;
-                    return GetName(memberExpression.Expression) + memberExpression.Member.Name;
-                    break;
+
+                    if (memberExpression.Expression.NodeType == ExpressionType.MemberAccess)
+                    {
+                        return GetName(memberExpression.Expression) + memberExpression.Member.Name;
+                    }
+
+                    return memberExpression.Member.Name;
                 case ExpressionType.Parameter:
+                    return ((ParameterExpression)expression).Name;
                 case ExpressionType.Constant:
                     return "";
-                    break;
                 case ExpressionType.Extension:
                     if (expression is AliasExpression e)
                     {
                         return e.Alias;
                     }
                     throw new ArgumentException("Invalid Expression");
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -54,34 +54,38 @@ namespace Punica.Linq.Dynamic.Tokens
         public Expression Evaluate()
         {
             List<Expression> expressions = new List<Expression>();
-            foreach (var token in Tokens)
+            foreach (var argument in Arguments)
             {
-                var expression = ExpressionEvaluator.Evaluate(token.Tokens);
+                var expression = argument.Evaluate();
 
                 expressions.Add(expression);
             }
 
+
             var properties = new List<AnonymousProperty>();
-            var bindkeys = new Dictionary<string, Expression>();
+            var bindKeys = new Dictionary<string, Expression>();
 
             foreach (var expression in expressions)
             {
                 var name = GetName(expression);
-                bindkeys[name] = expression;
+                bindKeys[name] = expression;
                 properties.Add(new AnonymousProperty(name, expression.Type));
             }
 
-            var type = AnonymousTypeFactory.CreateType(properties);
+            Type = AnonymousTypeFactory.CreateType(properties);
 
             var bindings = new List<MemberBinding>();
-            var members = type.GetProperties();
+            var members = Type.GetProperties();
 
             foreach (var member in members)
             {
-                bindings.Add(Expression.Bind(member, bindkeys[member.Name]));
+                bindings.Add(Expression.Bind(member, bindKeys[member.Name]));
             }
 
-            return Expression.MemberInit(Expression.New(type), bindings);
+            return Expression.MemberInit(Expression.New(Type), bindings);
+
         }
+
+
     }
 }

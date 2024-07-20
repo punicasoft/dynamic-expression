@@ -6,55 +6,45 @@ namespace Punica.Linq.Dynamic.Tests.Utils
     {
         protected Expression<Func<TResult>> GetExpression<TResult>(string expression)
         {
-            var rootToken = Tokenizer.Evaluate(new TokenContext(expression));
-
-            var resultExpression = rootToken.Evaluate();
-            return (Expression<Func<TResult>>)resultExpression;
+            var eval = new Evaluator();
+            return eval.Parse<Expression<Func<TResult>>>(expression);
         }
 
         protected Expression<Func<T1, TResult>> GetExpression<T1, TResult>(string expression)
         {
-            var context = new TokenContext(expression);
-            context.AddStartParameter(typeof(T1));
-            var rootToken = Tokenizer.Evaluate(context);
-
-            var resultExpression = rootToken.Evaluate();
-            return (Expression<Func<T1, TResult>>)resultExpression;
+            var eval = new Evaluator()
+                .AddStartParameter(typeof(T1));
+            return eval.Parse<Expression<Func<T1, TResult>>>(expression);
         }
 
         protected LambdaExpression GetGeneralExpression<T1>(string expression)
         {
-            var context = new TokenContext(expression);
-            context.AddStartParameter(typeof(T1));
-            var rootToken = Tokenizer.Evaluate(context);
-
-            var resultExpression = rootToken.Evaluate();
-            return (LambdaExpression)resultExpression;
+            var eval = new Evaluator()
+                .AddStartParameter(typeof(T1));
+            return eval.Parse(expression);
         }
 
         protected LambdaExpression GetGeneralExpression<T1>(string expression, Type type)
         {
-            var context = new TokenContext(expression);
-            context.AddStartParameter(type);
-            var rootToken = Tokenizer.Evaluate(context);
+            var eval = new Evaluator()
+                .AddStartParameter(type);
 
-            var resultExpression = rootToken.Evaluate();
-            return (LambdaExpression)resultExpression;
+            return eval.Parse(expression);
         }
 
         protected LambdaExpression GetGeneralExpression(string expression, Expression? variables = null, params ParameterExpression[] parameters)
         {
-            var context = new TokenContext(expression, variables);
+
+            var eval = new Evaluator()
+                .SetVariableInstance(variables);
 
             foreach (var parameter in parameters)
             {
-                context.AddParameter(parameter);
+                eval.AddParameter(parameter);
             }
 
-            var rootToken = Tokenizer.Evaluate(context);
+            return eval.Parse(expression);
 
-            var resultExpression = rootToken.Evaluate();
-            return (LambdaExpression)resultExpression;
         }
 
     }

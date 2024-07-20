@@ -5,6 +5,8 @@ A Simple text parse which convert expression from a string to Lambda Expression.
 
 ## How to use
 
+These are outdated. pleease check test classes for code samples
+
 Addition
 ```csharp
 string expression= "5 + 7";
@@ -117,8 +119,8 @@ var result = exp.Compile().DynamicInvoke(Data.Persons.AsQueryable());
 
 |                         Method |      Mean |     Error |    StdDev |   Gen0 |   Gen1 | Allocated |
 |------------------------------- |----------:|----------:|----------:|-------:|-------:|----------:|
-| Two_Select_With_New_Expression | 32.223 us | 0.4045 us | 0.3378 us | 4.0283 | 0.0610 |  33.03 KB |
-|     Select_With_New_Expression | 15.513 us | 0.2949 us | 0.2897 us | 1.8616 |      - |  15.42 KB |
-|    Advanced_Boolean_Expression |  4.677 us | 0.0913 us | 0.1280 us | 0.5035 |      - |   4.14 KB |
-|     Average_Int_With_Predicate | 29.340 us | 0.2213 us | 0.2070 us | 3.8757 | 0.0305 |   31.7 KB |
+| Two_Select_With_New_Expression | 23.599 us | 0.4688 us | 0.4604 us | 2.8076 | 0.0305 |     23 KB |
+|     Select_With_New_Expression | 10.467 us | 0.1551 us | 0.1375 us | 1.1749 |      - |   9.63 KB |
+|    Advanced_Boolean_Expression |  4.256 us | 0.0804 us | 0.0861 us | 0.4959 |      - |   4.05 KB |
+|     Average_Int_With_Predicate | 12.307 us | 0.1201 us | 0.1123 us | 1.2054 |      - |   9.95 KB |
 

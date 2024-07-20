@@ -1,5 +1,5 @@
 ﻿using System.Linq.Expressions;
-using Punica.Linq.Dynamic.Tokens.abstractions;
+using Punica.Linq.Dynamic.Abstractions;
 
 namespace Punica.Linq.Dynamic.Tokens
 {

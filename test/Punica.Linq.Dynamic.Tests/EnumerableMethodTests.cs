@@ -5,7 +5,7 @@ using Punica.Linq.Dynamic.Tests.Utils;
 namespace Punica.Linq.Dynamic.Tests
 {
     //https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.contains?view=net-8.0
-    public class EnumerableMethodTesting : ExpressionTestsBase
+    public class EnumerableMethodTests : ExpressionTestsBase
     {
         [Fact]
         public void Evaluate_All_ShouldWork()
@@ -94,18 +94,14 @@ namespace Punica.Linq.Dynamic.Tests
 
             var expression = "fruits.Contains(@apple, @prodc)";
 
-            var context = new TokenContext(expression)
-                .AddIdentifier("apple", Expression.Constant(apple))
-                .AddIdentifier("prodc", Expression.Constant(prodc))
-                .AddParameter(Expression.Parameter(fruits.GetType(), "fruits"));
+            var context = new Evaluator()
+                .AddVariable("apple", apple)
+                .AddVariable("prodc", prodc)
+                .AddParameter(fruits.GetType(), "fruits");
 
-            var rootToken = Tokenizer.Evaluate(context);
+            var func = context.Evaluate<Func<Product[], bool>>(expression);
 
-            var re = rootToken.Evaluate();
-            var resultExpression = (Expression<Func<Product[], bool>>)re;
-
-         
-            var actual = resultExpression.Compile()(fruits);
+            var actual = func(fruits);
             var expected = fruits.Contains(apple, prodc);
             Assert.Equal(expected, actual);
         }
@@ -173,6 +169,45 @@ namespace Punica.Linq.Dynamic.Tests
         }
 
 
+        //  Test Select with index working
+        [Fact]
+        public void Evaluate_Select_Index_ShouldWork()
+        {
+            List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+            var expression = GetGeneralExpression<List<int>>("Select((x, index) => new { x, index})");
+            var actual = expression.Compile().DynamicInvoke(numbers);
+            var expected = numbers.Select((x, index) => new {x, index});
+            var expectedJson = JsonSerializer.Serialize(expected);
+            var actualJson = JsonSerializer.Serialize(actual);
+            Assert.Equal(expectedJson, actualJson);
+        }
+
+        // Test Join should work
+        [Fact]
+        public void Evaluate_Join_ShouldWork()
+        {
+            Person magnus = new Person { FirstName = "Magnus" };
+            Person terry = new Person { FirstName = "Terry" };
+            Person charlotte = new Person { FirstName = "Charlotte" };
+
+            Pet barley = new Pet { Name = "Barley", Owner = terry };
+            Pet boots = new Pet { Name = "Boots", Owner = terry };
+            Pet whiskers = new Pet { Name = "Whiskers", Owner = charlotte };
+            Pet daisy = new Pet { Name = "Daisy", Owner = magnus };
+
+            List<Person> people = new List<Person> { magnus, terry, charlotte };
+            List<Pet> pets = new List<Pet> { barley, boots, whiskers, daisy };
+
+            var expression = GetGeneralExpression("people.Join(pets, person => person, pet => pet.Owner, (person, pet) => new { person.FirstName as 'OwnerName', pet.Name as 'Pet' })", null,Expression.Parameter(people.GetType(), "people"), Expression.Parameter(pets.GetType(), "pets"));
+            var actual = expression.Compile().DynamicInvoke(people, pets);
+            var expected = people.Join(pets, person => person, pet => pet.Owner, (person, pet) => new { OwnerName = person.FirstName, Pet = pet.Name });
+            var expectedJson = JsonSerializer.Serialize(expected);
+            var actualJson = JsonSerializer.Serialize(actual);
+            Assert.Equal(expectedJson, actualJson);
+           
+        }
+
         [Fact]
         public void Evaluate_WhenExpressionIsQueryable_ShouldWork()
         {
@@ -197,139 +232,7 @@ namespace Punica.Linq.Dynamic.Tests
             var actualJson = JsonSerializer.Serialize(actual);
             Assert.Equal(expected, actualJson);
         }
-
-
-
-        ///// TODO add date time add, and other operations, string operations, guid
-
-
-        //[Fact]
-        //public void Evaluate_Select2_Should_Work()
-        //{
-        //    List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
-
-        //    // Using the first Select overload: Func<TSource, TResult>
-        //    // Doubles each number in the list
-        //    IEnumerable<int> doubledNumbers = numbers.Select(x => x * 2);
-        //    Console.WriteLine("Doubled numbers:");
-        //    foreach (int number in doubledNumbers)
-        //    {
-        //        Console.WriteLine(number);
-        //    }
-
-        //    // Using the second Select overload: Func<TSource, int, TResult>
-        //    // Creates a tuple with the number and its index in the list
-        //    IEnumerable<(int Number, int Index)> numbersWithIndex = numbers.Select((x, index) => (Number: x, Index: index));
-        //    Console.WriteLine("\nNumbers with index:");
-        //    foreach (var numberWithIndex in numbersWithIndex)
-        //    {
-        //        Console.WriteLine($"Number: {numberWithIndex.Number}, Index: {numberWithIndex.Index}");
-        //    }
-        //}
-
-        //[Fact]
-        //public void Evaluate_GroupJoin_ShouldWork()
-        //{
-        //    Person magnus = new Person { FirstName = "Magnus" };
-        //    Person terry = new Person { FirstName = "Terry" };
-        //    Person charlotte = new Person { FirstName = "Charlotte" };
-
-        //    Pet barley = new Pet { Name = "Barley", Owner = terry };
-        //    Pet boots = new Pet { Name = "Boots", Owner = terry };
-        //    Pet whiskers = new Pet { Name = "Whiskers", Owner = charlotte };
-        //    Pet daisy = new Pet { Name = "Daisy", Owner = magnus };
-
-        //    List<Person> people = new List<Person> { magnus, terry, charlotte };
-        //    List<Pet> pets = new List<Pet> { barley, boots, whiskers, daisy };
-
-        //    // Create a list where each element is an anonymous
-        //    // type that contains a person's name and
-        //    // a collection of names of the pets they own.
-        //    var expected = people.GroupJoin(pets,
-        //        person => person,
-        //        pet => pet.Owner,
-        //        (person, petCollection) =>
-        //            new
-        //            {
-        //                OwnerName = person.FirstName,
-        //                Pets = petCollection.Select(pet => pet.Name)
-        //            });
-
-
-        //    var para = new JoinPara()
-        //    {
-        //        pets = pets
-        //    };
-
-        //    // string stringExp = "people.GroupJoin(pets, person => person, pet => pet.Owner, (person, petCollection) => new { OwnerName = person.FirstName, Pets = petCollection.Select(pet => pet.Name) } )";
-
-        //    string stringExp = "GroupJoin(@pets, person, pet.Owner,  new { person.FirstName as 'OwnerName', petCollection.Select(Name) } as 'Pets' )";
-        //    //TODO: may be use _ but the issue with two types of parameters
-
-        //    // Genral expression
-        //    // var resultExpression = GetGeneralExpression<List<Person>, object>(stringExp);
-        //    var rootToken = Tokenizer2.Evaluate(new TokenContext(stringExp, new MethodContext(Expression.Parameter(typeof(List<Person>), "arg")), Expression.Constant(para)));
-
-        //    var resultExpression = rootToken.Evaluate(null);
-        //    var lambdaExpression = (LambdaExpression)resultExpression;
-        //    var actual = lambdaExpression.Compile().DynamicInvoke(people);
-        //}
-
-        //[Fact]
-        //public void Evaluate_Join_ShouldWork()
-        //{
-        //    Person magnus = new Person { Name = "Hedlund, Magnus" };
-        //    Person terry = new Person { Name = "Adams, Terry" };
-        //    Person charlotte = new Person { Name = "Weiss, Charlotte" };
-
-        //    Pet barley = new Pet { Name = "Barley", Owner = terry };
-        //    Pet boots = new Pet { Name = "Boots", Owner = terry };
-        //    Pet whiskers = new Pet { Name = "Whiskers", Owner = charlotte };
-        //    Pet daisy = new Pet { Name = "Daisy", Owner = magnus };
-
-        //    List<Person> people = new List<Person> { magnus, terry, charlotte };
-        //    List<Pet> pets = new List<Pet> { barley, boots, whiskers, daisy };
-
-        //    // Create a list of Person-Pet pairs where
-        //    // each element is an anonymous type that contains a
-        //    // Pet's name and the name of the Person that owns the Pet.
-        //    var query =
-        //        people.Join(pets,
-        //            person => person,
-        //            pet => pet.Owner,
-        //            (person, pet) =>
-        //                new { OwnerName = person.FirstName, Pet = pet.Name });
-
-        //}
-
-        //[Fact]
-        //public void Evaluate_SelectMany2_ShouldWork()
-        //{
-        //    PetOwner[] petOwners =
-        //    { new PetOwner { Name="Higa",
-        //            Pets = new List<string>{ "Scruffy", "Sam" } },
-        //        new PetOwner { Name="Ashkenazi",
-        //            Pets = new List<string>{ "Walker", "Sugar" } },
-        //        new PetOwner { Name="Price",
-        //            Pets = new List<string>{ "Scratches", "Diesel" } },
-        //        new PetOwner { Name="Hines",
-        //            Pets = new List<string>{ "Dusty" } } };
-
-        //    // Project the pet owner's name and the pet's name.
-        //    var query =
-        //        petOwners
-        //            .SelectMany(petOwner => petOwner.Pets,
-        //                (petOwner, petName) => new { petOwner, petName })
-        //            .Where(ownerAndPet => ownerAndPet.petName.StartsWith("S"))
-        //            .Select(ownerAndPet =>
-        //                new
-        //                {
-        //                    Owner = ownerAndPet.petOwner.Name,
-        //                    Pet = ownerAndPet.petName
-        //                }
-        //            );
-        //}
-
+        
 
         public static IEnumerable<object[]> Average =>
             new List<object[]>

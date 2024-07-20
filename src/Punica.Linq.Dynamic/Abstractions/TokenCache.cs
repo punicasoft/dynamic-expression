@@ -1,6 +1,8 @@
 ﻿using System.Linq.Expressions;
+using Punica.Linq.Dynamic.Abstractions;
+using Punica.Linq.Dynamic.Tokens;
 
-namespace Punica.Linq.Dynamic.Tokens.abstractions
+namespace Punica.Linq.Dynamic.Abstractions
 {
     public static class TokenCache
     {
@@ -10,6 +12,7 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken Divide = new DivideToken();
         public static readonly IToken Modulo = new ModuloToken();
         public static readonly IToken NegateToken = new NegateToken();
+        public static readonly IToken UnaryPlusToken = new UnaryPlusToken();
         public static readonly IToken Equal = new EqualToken();
         public static readonly IToken NotEqual = new NotEqualToken();
         public static readonly IToken GreaterThan = new GreaterThanToken();
@@ -27,7 +30,7 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken Colon = new ColonToken();
         public static readonly IToken True = new ValueToken(Expression.Constant(true));
         public static readonly IToken False = new ValueToken(Expression.Constant(false));
-        public static readonly IToken Null = new AddToken();
+        public static readonly IToken Null = new ValueToken(Expression.Constant(null));
         public static readonly IToken Identifier = new AddToken();
         public static readonly IToken BitwiseAnd = new BitwiseAndToken();
         public static readonly IToken BitwiseOr = new BitwiseOrToken();
@@ -42,5 +45,5 @@ namespace Punica.Linq.Dynamic.Tokens.abstractions
         public static readonly IToken As = new AsToken();
     }
 
-  
+
 }

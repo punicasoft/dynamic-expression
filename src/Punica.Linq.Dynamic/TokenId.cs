@@ -44,6 +44,8 @@
         NullPropagation,
         Variable,
         In,
-        As
+        As,
+        Null,
+        New
     }
 }
