@@ -110,7 +110,7 @@ var resultExpression = GetGeneralExpression<IQueryable<Person>>(stringExp);
 var function = resultExpression.Compile();
 var result = function(data.Persons.AsQueryable());
 
-// data.Persons.AsQueryable() can be _context.Persons in EF Core DB context, in that case code equivalant to above text to code is
+// data.Persons.AsQueryable() can be something like _context.Persons in EF Core DB context scenario. In that case, code equivalant to above string expression looks like following
 
   _context.Persons..Select(x => new
     {
@@ -126,22 +126,37 @@ var result = function(data.Persons.AsQueryable());
 
 ## Features
 
- - Support equality operators: **==, !=**
- - Support relational operators: **>,>=,<=, <**
- - Support Conditional operators **??, ?**
- - Arithmetic Operators: **+, - , / ,*, %** (Does not support negative numbers)
- - New expressions **new**
- - String Contains and Concatenation (Previously supported as well) 
- - Linq Methods **Linq methods. (WIP)**
- - Precedence using **(,)**
+ - Support equality operators: `==`,`!=`
+ - Support relational operators: `>`,`>=`,`<=`,`<`
+ - Support Conditional operators `??`,`?`
+ - Arithmetic Operators: `+`,`-`,`/`,`*`,`%` 
+ - New expressions `new`
+ - Bitwise **And** and **Or** Operations: `&`,`|`
+ - String Operations: `Contains`,`+`, `Trim`, `StartsWith`,`Substring` etc.
+ - Linq Methods: `Linq Methods`
+ - Precedence using parenthesis `(`,`)`
  - Lambda calls
+ - Aliases
 
-## Limitation (To be Validated)
 
-(With dynamic method support added in most should work as long as method can be inferred on runtime from the string and inputs outputs)
- - Linq methods are WIP (Enumerable methods are all added in haven't test out).
- - Not all string operation supported
- - Dates and GUID operation has very little support if they are inputs
+| Alias  | Operator Name         | Symbol  |   | Alias  | Operator Name         | Symbol  |
+|--------|-----------------------|---------|---|--------|-----------------------|---------|
+| eq     | Equal                 | `==`    |   | not    | Not                   | `!`     |
+| ne     | NotEqual              | `!=`    |   | add    | Add                   | `+`     |
+| lt     | LessThan              | `<`     |   | sub    | Subtract              | `-`     |
+| le     | LessThanOrEqual       | `<=`    |   | mul    | Multiply              | `*`     |
+| gt     | GreaterThan           | `>`     |   | div    | Divide                | `/`     |
+| ge     | GreaterThanOrEqual    | `>=`    |   | true   | BooleanLiteral (True) | `true`  |
+| in     | Contain               | `in`    |   | false  | BooleanLiteral (False)| `false` |
+| as     | As, Variable Rename   | `as`    |   | null   | Null                  | `null`  |
+| or     | OrElse                | <code>&#124;&#124;</code> |   | new    | New, Create new Instances                   | `new`   |
+| and    | AndAlso               | `&&`    |   | mod    | Modulo                | `%`     |
+
+## Limitation
+
+ - Linq methods (All Enumerable,Queryable methods supported but haven't test all out).
+ - Dates and GUID operation has very little support if they are inputs.
+ - Adding Custom types for dynamic method detection.
  
  ## Improvements
 
@@ -149,9 +164,9 @@ var result = function(data.Persons.AsQueryable());
  - Better number type support
  - Most Linq limitation removed 
  - Dynamic method detection support compared to previous static definition but slower compared previous implementation.
+ - Limit dynamic methods for only know namespaces for security consideration.
  - Will interpret types based on expression, will fail if it can't determine the overload
  - Method chaining support.
- 
  
 
 | Method                         | Mean      | Error     | StdDev    | Gen0   | Gen1   | Allocated |
