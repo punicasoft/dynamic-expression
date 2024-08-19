@@ -1,61 +1,83 @@
 
 
 # Dynamic Expression
-A Simple text parse which convert expression from a string to Lambda Expression. Features and tolerance for expression are limited since this an early stage of work.
+A Simple text parse which convert expression from a string to Lambda Expression.
+
+### Installing Dynamic Expression
+
+You should install [Punica.Linq.Dynamic](https://www.nuget.org/packages/Punica.Linq.Dynamic/)
+
+    Install-Package Punica.Linq.Dynamic
+    
+Or via the .NET Core command line interface:
+
+    dotnet add package Punica.Linq.Dynamic
+
+Either commands, from Package Manager Console or .NET Core CLI, will download and install Punica.Linq.Dynamic and all required dependencies.
 
 ## How to use
 
-These are outdated. pleease check test classes for code samples
+Common Methods Used in Samples
+```csharp
+public Expression<Func<TResult>> GetExpression<TResult>(string expression)
+{
+    var eval = new Evaluator();
+    return eval.Parse<Expression<Func<TResult>>>(expression);
+}
+
+public Expression<Func<T1, TResult>> GetExpression<T1, TResult>(string expression)
+{
+    var eval = new Evaluator()
+        .AddStartParameter(typeof(T1));
+    return eval.Parse<Expression<Func<T1, TResult>>>(expression);
+}
+
+public LambdaExpression GetGeneralExpression<T1>(string expression)
+{
+    var eval = new Evaluator()
+        .AddStartParameter(typeof(T1));
+    return eval.Parse(expression);
+}
+
+```
 
 Addition
 ```csharp
-string expression= "5 + 7";
-var rootToken = Tokenizer.Evaluate(new TokenContext(expression));
-var resultExpression = rootToken.Evaluate();
+ string stringExp = "5 + 7";
 
-var exp = (Expression<Func<int>>)resultExpression;
-Func<bool> func = exp.Compile();
-
-var result = func(); // 12
+ var resultExpression = GetExpression<int>(stringExp);
+ var result = resultExpression.Compile()(); // 12
 
 ```
 Contains
 
 ```csharp     
 string stringExp = $"'rl' in 'hello world'";
-var rootToken = Tokenizer.Evaluate(new TokenContext(stringExp ));
-var resultExpression = rootToken.Evaluate();
-
-var exp = (Expression<Func<bool>>)resultExpression;
-Func<bool> func = exp.Compile();
-
-var result = func(); // true
-
+var resultExpression = GetExpression<bool>(stringExp);
+var result = resultExpression.Compile()(); // true
 ```
 
 ```csharp    
 public class MyList
-{
-    public int[] Numbers { get; set; }
-    public string[] Words { get; set; }
-    public List<string> Months { get; set; }
+{    
     public List<Status> Statuses { get; set; }
 }
 
-var data= new MyList(){
----
+var data = new MyList(){
+     Statuses = new List<Status>()
+     {
+         Status.Active,
+         Status.Inactive,
+         Status.Online,
+         Status.Paused
+     }
 }  
 string expression= $"'Status.Active' in Statuses";
 
-var context = new TokenContext(expression);
-context.AddStartParameter(typeof(T1));
-var rootToken = Tokenizer.Evaluate(context);
-var resultExpression = rootToken.Evaluate();
+var resultExpression = GetExpression<MyList, bool>(expression);
+Func<MyList, bool> func = resultExpression.Compile();
 
-var exp = (Expression<Func<MyList, bool>>)resultExpression;
-Func<bool> func = exp.Compile();
-
-var result = func(data);
+var result = func(data); // true
 ```
 
 ```csharp    
@@ -72,19 +94,34 @@ public class Child
    public string Gender { get; set; }
 }
 
-var data= new MyList(){
----
+public class MyList
+{    
+    public List<Person> Persons { get; set; }
+}
+
+var data = new MyList(){
+    Persons = new List<Person>(){
+    --- Your Data --
+    }
 }  
 
 string expression= $"Select(new{ FirstName,Children.Select(new{Name , Gender}).ToList() as 'Kids'}).Where(Kids.Any(Gender == 'Female'))";
+var resultExpression = GetGeneralExpression<IQueryable<Person>>(stringExp);
+var function = resultExpression.Compile();
+var result = function(data.Persons.AsQueryable());
 
-var context = new TokenContext(expression);
-context.AddStartParameter(typeof(MyList));
-var rootToken = Tokenizer.Evaluate(context);
+// data.Persons.AsQueryable() can be _context.Persons in EF Core DB context, in that case code equivalant to above text to code is
 
-var resultExpression = rootToken.Evaluate();
-var exp = (LambdaExpression)resultExpression;
-var result = exp.Compile().DynamicInvoke(Data.Persons.AsQueryable());	
+  _context.Persons..Select(x => new
+    {
+        FirstName = x.FirstName,
+        Kids = x.Children.Select(c => new
+        {
+            c.Name,
+            Gender = c.Gender
+        }).ToList(),
+    }).Where(p => p.Kids.Any(k => k.Gender == "Female"));
+	
 ```
 
 ## Features
@@ -99,12 +136,12 @@ var result = exp.Compile().DynamicInvoke(Data.Persons.AsQueryable());
  - Precedence using **(,)**
  - Lambda calls
 
-## Limitation
+## Limitation (To be Validated)
 
+(With dynamic method support added in most should work as long as method can be inferred on runtime from the string and inputs outputs)
  - Linq methods are WIP (Enumerable methods are all added in haven't test out).
  - Not all string operation supported
  - Dates and GUID operation has very little support if they are inputs
- - Doesn't works with negative numbers very well
  
  ## Improvements
 
